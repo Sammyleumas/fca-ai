@@ -1,6 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { z } from "zod";
-import { AIError, getAIProvider } from "@/lib/ai";
+import { AIError, AI_ERROR_STATUS, getAIProvider } from "@/lib/ai";
 import { assertAIAllowed } from "@/lib/ai/guard";
 import { QUESTION_TYPES, type QuestionType } from "@/lib/assessments/questions";
 import { generateQuiz } from "@/lib/assessments/service";
@@ -55,7 +55,7 @@ export async function POST(request: NextRequest) {
     getAIProvider();
     await assertAIAllowed(user.id, "quiz");
   } catch (e) {
-    if (e instanceof AIError) return NextResponse.json({ error: e.message }, { status: e.code === "not_configured" ? 503 : 429 });
+    if (e instanceof AIError) return NextResponse.json({ error: e.message }, { status: AI_ERROR_STATUS[e.code] ?? 503 });
     return NextResponse.json({ error: "The quiz generator is unavailable right now." }, { status: 503 });
   }
   const { tier } = await getShellData(user.id);

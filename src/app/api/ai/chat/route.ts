@@ -1,6 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { z } from "zod";
-import { AIError, getAIProvider, type ChatMessage } from "@/lib/ai";
+import { AIError, AI_ERROR_STATUS, getAIProvider, type ChatMessage } from "@/lib/ai";
 import { assertAIAllowed, recordAIUsage } from "@/lib/ai/guard";
 import { tutorSystemPrompt } from "@/lib/ai/prompts/tutor";
 import { groundedTutorSystemPrompt, groundedUserTurn } from "@/lib/ai/prompts/grounded-tutor";
@@ -17,15 +17,6 @@ const bodySchema = z.object({
   sectionId: z.uuid().optional(),
   message: z.string().trim().min(1, "Type a message.").max(4000, "Keep messages under 4,000 characters."),
 });
-
-const STATUS: Record<string, number> = {
-  not_configured: 503,
-  rate_limited: 429,
-  quota_exceeded: 429,
-  unavailable: 503,
-  refused: 422,
-  invalid_output: 502,
-};
 
 function errorJson(message: string, status: number) {
   return NextResponse.json({ error: message }, { status });
@@ -55,7 +46,7 @@ export async function POST(request: NextRequest) {
     provider = getAIProvider();
     await assertAIAllowed(user.id, "tutor_chat");
   } catch (error) {
-    if (error instanceof AIError) return errorJson(error.message, STATUS[error.code] ?? 500);
+    if (error instanceof AIError) return errorJson(error.message, AI_ERROR_STATUS[error.code] ?? 500);
     return errorJson("The AI tutor is unavailable right now.", 503);
   }
 
@@ -115,7 +106,7 @@ export async function POST(request: NextRequest) {
     .order("created_at", { ascending: false })
     .limit(20);
   const messages: ChatMessage[] = ((history ?? []) as ChatMessage[]).reverse();
-  // The API requires the first message to be from the user.
+  // Conversations must start with a student turn.
   while (messages.length && messages[0].role !== "user") messages.shift();
 
   const profile = await getProfile(user.id);

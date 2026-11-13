@@ -6,7 +6,27 @@ export type Effort = "low" | "medium" | "high";
 
 export type AIUsage = { model: string; inputTokens: number; outputTokens: number };
 
-export type AIErrorCode = "not_configured" | "rate_limited" | "quota_exceeded" | "unavailable" | "refused" | "invalid_output";
+export type AIErrorCode =
+  | "not_configured"
+  | "rate_limited"
+  | "quota_exceeded"
+  | "unavailable"
+  | "timeout"
+  | "bad_request"
+  | "refused"
+  | "invalid_output";
+
+/** HTTP status an API route should answer with for each AI error (shared by every AI route). */
+export const AI_ERROR_STATUS: Record<AIErrorCode, number> = {
+  not_configured: 503,
+  rate_limited: 429,
+  quota_exceeded: 429,
+  unavailable: 503,
+  timeout: 504,
+  bad_request: 502,
+  refused: 422,
+  invalid_output: 502,
+};
 
 export class AIError extends Error {
   constructor(
@@ -21,7 +41,10 @@ export class AIError extends Error {
 export interface AITextStream {
   /** Text deltas as they arrive. */
   textStream: AsyncIterable<string>;
-  /** Resolves after the stream ends. */
+  /**
+   * Resolves after the stream ends. `stopReason` is "end_turn", "max_tokens" or
+   * "refusal" (the provider declined / blocked the answer).
+   */
   final(): Promise<{ text: string; usage: AIUsage; stopReason: string | null }>;
 }
 

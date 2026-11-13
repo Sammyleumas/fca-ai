@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { isAIConfigured } from "@/lib/ai";
 import { hasAdminClient, createAdminClient } from "@/lib/supabase/admin";
 import { billingProviders } from "@/lib/billing/config";
 import { emailConfigured } from "@/lib/email/send";
@@ -16,7 +17,7 @@ export async function GET() {
   const body = {
     status: database === "error" ? "degraded" : "ok",
     database,
-    ai: Boolean(process.env.ANTHROPIC_API_KEY),
+    ai: isAIConfigured(),
     email: emailConfigured(),
     billing: { stripe: billing.some((p) => p.id === "stripe"), paystack: billing.some((p) => p.id === "paystack") },
     cron: Boolean(process.env.CRON_SECRET),

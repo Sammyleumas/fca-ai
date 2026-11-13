@@ -1,6 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { z } from "zod";
-import { AIError, getAIProvider } from "@/lib/ai";
+import { AIError, AI_ERROR_STATUS, getAIProvider } from "@/lib/ai";
 import { assertAIAllowed, recordAIUsage } from "@/lib/ai/guard";
 import { PASSAGE_ACTIONS, PASSAGE_SYSTEM_PROMPT, passageUserPrompt, type PassageAction } from "@/lib/ai/prompts/passage";
 import { getSessionUser } from "@/lib/auth/dal";
@@ -16,7 +16,6 @@ const schema = z.object({
   question: z.string().trim().max(1000).optional(),
 });
 
-const STATUS: Record<string, number> = { not_configured: 503, rate_limited: 429, quota_exceeded: 429, unavailable: 503, refused: 422 };
 
 /** Streams an explanation / summary / examples / questions for a passage the student selected. */
 export async function POST(request: NextRequest) {
@@ -32,7 +31,7 @@ export async function POST(request: NextRequest) {
     provider = getAIProvider();
     await assertAIAllowed(user.id, "explain");
   } catch (error) {
-    if (error instanceof AIError) return NextResponse.json({ error: error.message }, { status: STATUS[error.code] ?? 500 });
+    if (error instanceof AIError) return NextResponse.json({ error: error.message }, { status: AI_ERROR_STATUS[error.code] ?? 500 });
     return NextResponse.json({ error: "The AI assistant is unavailable right now." }, { status: 503 });
   }
 

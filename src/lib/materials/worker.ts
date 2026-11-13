@@ -18,7 +18,7 @@ function ocrServiceFor(userId: string): OcrService | null {
         await recordAIUsage(userId, "ocr", usage);
         return pages;
       } catch (error) {
-        if (error instanceof AIError && (error.code === "rate_limited" || error.code === "unavailable")) {
+        if (error instanceof AIError && (error.code === "rate_limited" || error.code === "unavailable" || error.code === "timeout")) {
           throw new RetryLaterError(60, error.message);
         }
         throw error;
@@ -43,7 +43,7 @@ function segmenterFor(userId: string): SegmentationService | null {
         await recordAIUsage(userId, "segmentation", usage);
         return object;
       } catch (error) {
-        if (error instanceof AIError && (error.code === "rate_limited" || error.code === "unavailable")) {
+        if (error instanceof AIError && (error.code === "rate_limited" || error.code === "unavailable" || error.code === "timeout")) {
           throw new RetryLaterError(60, error.message);
         }
         throw error;
