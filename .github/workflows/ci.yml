@@ -36,4 +36,10 @@ jobs:
           sudo apt-get update -qq && sudo apt-get install -y -qq postgresql-client >/dev/null
           scripts/db-test-reset.sh
       - run: npx vitest run
-      - run: npm run build
+      - name: Build (with a dummy Gemini key, to prove it never reaches browser bundles)
+        run: npm run build
+        env:
+          GEMINI_API_KEY: ci-dummy-gemini-key-not-real
+      - run: npm run check:client-bundle
+        env:
+          GEMINI_API_KEY: ci-dummy-gemini-key-not-real

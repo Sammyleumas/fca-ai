@@ -1,6 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { z } from "zod";
-import { AIError, getAIProvider } from "@/lib/ai";
+import { AIError, AI_ERROR_STATUS, getAIProvider } from "@/lib/ai";
 import { assertAIAllowed, recordAIUsage } from "@/lib/ai/guard";
 import { FLASHCARD_SYSTEM_PROMPT } from "@/lib/ai/prompts/assessment";
 import { loadExcerpts } from "@/lib/assessments/sources";
@@ -31,7 +31,7 @@ export async function POST(request: NextRequest) {
     provider = getAIProvider();
     await assertAIAllowed(user.id, "flashcards");
   } catch (e) {
-    if (e instanceof AIError) return NextResponse.json({ error: e.message }, { status: e.code === "not_configured" ? 503 : 429 });
+    if (e instanceof AIError) return NextResponse.json({ error: e.message }, { status: AI_ERROR_STATUS[e.code] ?? 503 });
     return NextResponse.json({ error: "Flashcard generation is unavailable right now." }, { status: 503 });
   }
 

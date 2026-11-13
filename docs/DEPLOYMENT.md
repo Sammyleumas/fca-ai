@@ -33,7 +33,10 @@
 2. Environment variables (Production + Preview), see `.env.example`:
    `NEXT_PUBLIC_SUPABASE_URL` (Project Settings → API → Project URL), `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`
    (the `sb_publishable_…` key), `SUPABASE_SECRET_KEY` (the `sb_secret_…` key — server only),
-   `NEXT_PUBLIC_SITE_URL`, `AI_PROVIDER`, `ANTHROPIC_API_KEY` (optional `ANTHROPIC_MODEL`).
+   `NEXT_PUBLIC_SITE_URL`, `GEMINI_API_KEY` (from https://aistudio.google.com/apikey; optional `GEMINI_MODEL`).
+   Before relying on it, run `GEMINI_API_KEY=… npm run gemini:check` locally: it confirms the model is available to
+   your key's project and makes one test call. Free-tier limits are per project (see AI Studio → Usage); when they
+   run out students see "Today's AI allowance has been used up" until the quota resets.
    Also set `CRON_SECRET` (any long random string), and billing/email variables from sections 3–4.
 3. Deploy. Build command `next build`, output handled automatically.
 4. **Background processing.** Processing starts automatically after each upload and continues while a student
@@ -84,16 +87,16 @@ reminders to students who switched on "Also email me my reminders". Without thes
 - Sign up → receive verification email → link lands on `/onboarding`.
 - Complete onboarding → dashboard shows empty states (no fake numbers).
 - Forgot password → email → `/reset-password` → dashboard.
-- AI Tutor responds (requires `ANTHROPIC_API_KEY` and `SUPABASE_SECRET_KEY`).
+- AI Tutor responds (requires `GEMINI_API_KEY` and `SUPABASE_SECRET_KEY`).
 - Settings → Export downloads JSON; Delete account removes the user.
 - Library → upload a PDF, a DOCX and a TXT together → each reaches “Ready” and shows its chapters.
-- Upload a scanned PDF → pages are transcribed (requires `ANTHROPIC_API_KEY`).
+- Upload a scanned PDF → pages are transcribed (requires `GEMINI_API_KEY`).
 
 See `docs/SECURITY.md` for the full security review.
 
 ## Security checklist
 
-- `SUPABASE_SECRET_KEY` and `ANTHROPIC_API_KEY` are **never** prefixed with `NEXT_PUBLIC_`.
+- `SUPABASE_SECRET_KEY` and `GEMINI_API_KEY` are **never** prefixed with `NEXT_PUBLIC_`.
 - RLS is enabled on every public table (`npm run test:db` proves isolation).
 - Storage bucket `materials` is private; files live under `{user_id}/…`.
 - Security headers (incl. CSP) are set in `next.config.ts`. The CSP reads `NEXT_PUBLIC_SUPABASE_URL` at build time, so redeploy after changing it.

@@ -16,10 +16,12 @@
     "predev": "node scripts/copy-pdf-worker.mjs",
     "prebuild": "node scripts/copy-pdf-worker.mjs",
     "test:journey": "node tests/e2e/journey.cjs",
-    "db:setup-sql": "node scripts/build-setup-sql.mjs"
+    "db:setup-sql": "node scripts/build-setup-sql.mjs",
+    "gemini:check": "node scripts/gemini-check.mjs",
+    "check:client-bundle": "node scripts/check-client-bundle.mjs"
   },
   "dependencies": {
-    "@anthropic-ai/sdk": "^1.8.0",
+    "@google/genai": "^3.3.0",
     "@supabase/ssr": "^0.12.7",
     "@supabase/supabase-js": "^2.119.0",
     "clsx": "^2.1.1",

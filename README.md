@@ -12,7 +12,7 @@ and flashcards, and track real progress.
 ## Stack
 
 Next.js 16 (App Router) · React 19 · TypeScript · Tailwind CSS v4 · Motion · Lucide ·
-Supabase (Postgres, Auth, Storage, RLS) · Anthropic Claude via a swappable provider layer · Vitest · Playwright.
+Supabase (Postgres, Auth, Storage, RLS) · Google Gemini (Gemini Developer API, `@google/genai`) via a swappable provider layer · Vitest · Playwright.
 
 ## Quick start
 
@@ -20,7 +20,8 @@ Supabase (Postgres, Auth, Storage, RLS) · Anthropic Claude via a swappable prov
 git clone https://github.com/Sammyleumas/fca-ai.git
 cd fca-ai
 npm install
-cp .env.example .env.local          # fill in Supabase + Anthropic keys
+cp .env.example .env.local          # fill in Supabase + GEMINI_API_KEY
+npm run gemini:check                # optional: confirm the Gemini model works for your key
 npx supabase link --project-ref <ref> && npx supabase db push   # apply migrations
 npm run dev                          # http://localhost:3000
 ```

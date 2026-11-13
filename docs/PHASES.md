@@ -2,6 +2,8 @@
 
 > Renamed from MindFlow to **FCA-AI** with the FCA-AI palette (royal blue #0000A1, sky #00BFFF, yellow #FFEB3B, black, white) and the shield-and-rings logo.
 >
+> **AI provider:** Google Gemini via the Gemini Developer API (`@google/genai`, `GEMINI_API_KEY`, default model `gemini-3.8-flash`). Replaces Anthropic Claude.
+>
 > **Guest access:** "Continue as guest" on the welcome, sign-in and sign-up pages opens the full app without an account (Supabase anonymous sign-in). Guests see a banner to save their account (email link → choose a password) and keep all their work.
 
 Status legend: ✅ done & tested · 🟡 partial · ⏳ not started
@@ -21,7 +23,7 @@ Repository: https://github.com/Sammyleumas/fca-ai (moved from `Ayo-food/fca-ai` 
 | Onboarding | ✅ | Name (required) · education level · subjects · goals · daily time & preferred time · notifications · completion. Non-essential steps skippable; time zone auto-detected. |
 | Database | ✅ | All 29 specified tables + `ai_usage_events`, `rate_limit_buckets`; composite-FK ownership; RLS on every table; column-level grants; storage bucket + policies; achievement catalogue. |
 | Dashboard | ✅ | Greeting (user time zone), streak + 7-day chart, today's mission, daily progress, overview stats, upcoming sessions, recent materials, achievements, quick actions, AI assistant, premium card. All values from `dashboard_stats()` and live queries — empty states for new students. |
-| AI service layer | ✅ | Provider interface + Anthropic provider (streaming, structured output, server-side refusal fallback), burst rate limit + daily plan quota, usage metering. |
+| AI service layer | ✅ | Provider interface + Gemini provider (streaming, JSON-schema structured output, safety-block handling; originally Anthropic, migrated to Gemini), burst rate limit + daily plan quota, usage metering. |
 | AI Tutor (general mode) | ✅ | Streaming chat, conversation history, AI replies labelled "general knowledge"; student message persisted before the model is called. Material-grounded mode arrives in Phase 3/4. |
 | Settings | ✅ | Profile, time zone, learning prefs, notification prefs, password change (re-auth), JSON data export, account deletion (storage + cascade). |
 | Notifications centre | ✅ | List, mark read, mark all read, delete. Scheduled reminders are produced in Phase 6. |
@@ -33,7 +35,7 @@ Repository: https://github.com/Sammyleumas/fca-ai (moved from `Ayo-food/fca-ai` 
 incl. time zones and idempotency, XP cap, rate limiting, storage folders, dashboard aggregates) · 18 Playwright
 smoke checks across three viewports. Production build passes.
 
-**Not verified in this environment:** live Supabase Auth email delivery, OAuth providers and real Anthropic calls
+**Not verified in this environment:** live Supabase Auth email delivery, OAuth providers and real AI provider calls
 (no credentials in the build sandbox). These paths are type-checked and follow the official SDK APIs; verify them
 against your Supabase project before launch.
 
@@ -51,7 +53,7 @@ against your Supabase project before launch.
 | Replace / delete | ✅ | Replace keeps the material (and reading progress), rebuilds pages & sections, removes the old object. Delete removes every stored object, then the row (pages, sections, notes cascade). |
 | Extraction | ✅ | PDF via `unpdf` (PDF.js) with original page numbers; DOCX via `mammoth` with heading levels; TXT/Markdown with heading heuristics. DOCX/TXT are split into estimated pages **only between paragraphs**, headings always stay with their content. |
 | Structure | ✅ | Chapters → subtopics with page ranges from PDF bookmarks, DOCX heading styles, or typography (font size) as a fallback; running headers are ignored; reading time estimated at 160 wpm. AI segmentation into learning units is Phase 3. |
-| OCR | ✅ | Image-only PDF pages are sliced into 8-page PDFs and transcribed by the AI provider (Claude reads PDFs); usage is metered. Without an AI key, documents still process and show which pages have no text; fully scanned documents fail with a clear message. |
+| OCR | ✅ | Image-only PDF pages are sliced into 8-page PDFs and transcribed by the AI provider (Gemini reads PDFs); usage is metered. Without an AI key, documents still process and show which pages have no text; fully scanned documents fail with a clear message. |
 | Background processing | ✅ | Postgres job queue with `claim_processing_job()` (SKIP LOCKED + lease), resumable state machine (extract → OCR → structure) that yields before the time budget, retries transient errors with exponential backoff (3 attempts), never retries file problems, notifies the student when ready or failed. Triggered after upload, by status polling, and by an optional cron (`/api/jobs/process`). Stale unfinished uploads are swept. |
 
 **Tests added:** file validation & sniffing, pagination, section building, PDF (text, outline, typography headings, scanned pages, corrupted), DOCX (heading levels, corrupted), TXT; pipeline end-to-end with an in-memory store (OCR, missing OCR, fully scanned, spoofed type, deadline yield + resume, retry/backoff, OCR rate limiting); library filters; queue claiming under concurrency, lease expiry, one active job per material, no student access. Extraction verified inside the production Next.js server bundle.

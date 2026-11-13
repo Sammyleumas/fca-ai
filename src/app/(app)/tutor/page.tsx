@@ -40,7 +40,7 @@ export default async function TutorPage({ searchParams }: PageProps<"/tutor">) {
     <TutorLayout conversations={conversations}>
       {!isAIConfigured() && (
         <FormMessage tone="info" className="mb-4">
-          AI features aren&apos;t configured on this server yet (missing <code>ANTHROPIC_API_KEY</code>).
+          AI features aren&apos;t configured on this server yet (missing <code>GEMINI_API_KEY</code>).
         </FormMessage>
       )}
       {materials.length > 0 && <ContextPicker materials={materials} value={material?.id ?? null} />}

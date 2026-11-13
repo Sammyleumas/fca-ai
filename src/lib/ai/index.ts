@@ -1,28 +1,37 @@
 import "server-only";
 import { serverEnv } from "@/lib/server-env";
-import { AnthropicProvider } from "./providers/anthropic";
+import { GeminiProvider } from "./providers/gemini";
 import { AIError, type AIProvider } from "./types";
 
 let cached: AIProvider | null = null;
 
-/** Returns the configured provider. Add new providers here; feature code is unaffected. */
+/**
+ * Returns the configured provider (Google Gemini via the Gemini Developer API).
+ * Feature code depends only on the AIProvider interface. The API key is read on
+ * the server only and is never sent to the browser.
+ */
 export function getAIProvider(): AIProvider {
   if (cached) return cached;
   switch (serverEnv.aiProvider) {
-    case "anthropic": {
-      const key = serverEnv.anthropicApiKey;
-      if (!key) throw new AIError("not_configured", "AI features are not configured yet (missing ANTHROPIC_API_KEY).");
-      cached = new AnthropicProvider(key, serverEnv.anthropicModel);
+    case "gemini": {
+      const key = serverEnv.geminiApiKey;
+      if (!key) throw new AIError("not_configured", "AI features are not configured yet.");
+      cached = new GeminiProvider(key, serverEnv.geminiModel);
       return cached;
     }
     default:
-      throw new AIError("not_configured", `Unknown AI_PROVIDER "${serverEnv.aiProvider}".`);
+      throw new AIError("not_configured", "AI features are not configured yet.");
   }
 }
 
 export function isAIConfigured(): boolean {
-  return serverEnv.aiProvider === "anthropic" ? Boolean(serverEnv.anthropicApiKey) : false;
+  return serverEnv.aiProvider === "gemini" && Boolean(serverEnv.geminiApiKey);
 }
 
-export { AIError } from "./types";
+/** For tests: forget the cached provider after changing the environment. */
+export function resetAIProviderForTests() {
+  cached = null;
+}
+
+export { AIError, AI_ERROR_STATUS } from "./types";
 export type { AIProvider, ChatMessage } from "./types";
