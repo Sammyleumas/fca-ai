@@ -53,10 +53,12 @@ const STRIPE_STATUS: Record<string, SubscriptionUpdate["status"]> = {
   active: "active",
   trialing: "trialing",
   past_due: "past_due",
-  unpaid: "past_due",
+  // Retries exhausted: access ends now (handled below), not at the unpaid period's end.
+  unpaid: "cancelled",
   canceled: "cancelled",
   incomplete: "incomplete",
-  incomplete_expired: "cancelled",
+  // The first payment never succeeded: never Premium.
+  incomplete_expired: "incomplete",
   paused: "past_due",
 };
 
@@ -82,6 +84,12 @@ export function stripeEventToUpdate(event: { type: string; data: { object: unkno
       const item = o((o(obj.items).data as unknown[] | undefined)?.[0]);
       const price = o(item.price);
       const status = event.type === "customer.subscription.deleted" ? "cancelled" : (STRIPE_STATUS[s(obj.status) ?? ""] ?? "incomplete");
+      // Once a subscription has ended (deleted / canceled / unpaid), Premium stops when it ended —
+      // its current_period_end may point at a period that was never paid for.
+      const ended = status === "cancelled" && (event.type === "customer.subscription.deleted" || s(obj.status) !== "active");
+      const periodEnd = ended
+        ? (iso(n(obj.ended_at)) ?? new Date().toISOString())
+        : iso(n(item.current_period_end) ?? n(obj.current_period_end));
       return {
         userId: s(o(obj.metadata).user_id),
         customerId: s(obj.customer),
@@ -89,7 +97,7 @@ export function stripeEventToUpdate(event: { type: string; data: { object: unkno
         plan: "premium",
         status,
         // Newer API versions put the period on the item; older ones on the subscription.
-        currentPeriodEnd: iso(n(item.current_period_end) ?? n(obj.current_period_end)),
+        currentPeriodEnd: periodEnd,
         cancelAtPeriodEnd: Boolean(obj.cancel_at_period_end),
         currency: s(price.currency)?.toUpperCase() ?? null,
         interval: (s(o(price.recurring).interval) as "month" | "year" | null) ?? null,
@@ -106,16 +114,24 @@ export function stripeEventToUpdate(event: { type: string; data: { object: unkno
   }
 }
 
-/** Maps a verified Paystack event to a subscription update (null = not relevant). */
-export function paystackEventToUpdate(event: { event: string; data: unknown }): SubscriptionUpdate | null {
+/**
+ * Maps a verified Paystack event to a subscription update (null = not relevant).
+ * `allowedPlanCodes` are our configured Premium plans: a charge only grants Premium
+ * if it was for one of them, at no less than the plan's price.
+ */
+export function paystackEventToUpdate(event: { event: string; data: unknown }, allowedPlanCodes: string[]): SubscriptionUpdate | null {
   const d = o(event.data);
   const customer = o(d.customer);
-  const plan = o(d.plan);
+  const plan = typeof d.plan === "string" ? { plan_code: d.plan } : o(d.plan);
   const meta = o(typeof d.metadata === "string" ? safeJson(d.metadata) : d.metadata);
   const interval = (p: unknown) => (p === "annually" ? "year" : p === "monthly" ? "month" : null);
   switch (event.event) {
     case "charge.success": {
-      if (!s(plan.plan_code) && !s(meta.plan_code)) return null; // one-off payments don't change the plan
+      // Only a charge for one of our Premium plans counts (metadata is payer-controlled, so it's ignored here).
+      const code = s(plan.plan_code);
+      if (!code || !allowedPlanCodes.includes(code)) return null;
+      const planAmount = n(plan.amount);
+      if (planAmount !== null && (n(d.amount) ?? 0) < planAmount) return null;
       return {
         userId: s(meta.user_id),
         customerId: s(customer.customer_code),
@@ -124,7 +140,7 @@ export function paystackEventToUpdate(event: { event: string; data: unknown }): 
         status: "active",
         currency: s(d.currency),
         amountMinor: n(d.amount),
-        planCode: s(plan.plan_code) ?? s(meta.plan_code),
+        planCode: code,
         interval: interval(plan.interval),
       };
     }
@@ -146,7 +162,8 @@ export function paystackEventToUpdate(event: { event: string; data: unknown }): 
     case "subscription.not_renew":
       return { subscriptionId: s(d.subscription_code), customerId: s(customer.customer_code), cancelAtPeriodEnd: true, currentPeriodEnd: s(d.next_payment_date) };
     case "subscription.disable":
-      return { subscriptionId: s(d.subscription_code), customerId: s(customer.customer_code), status: "cancelled", cancelAtPeriodEnd: true };
+      // Paystack disables a subscription when it ends (after "not renewing", failed retries or a cancel): access stops now.
+      return { subscriptionId: s(d.subscription_code), customerId: s(customer.customer_code), status: "cancelled", cancelAtPeriodEnd: true, currentPeriodEnd: new Date().toISOString() };
     case "invoice.payment_failed":
       return { subscriptionId: s(o(d.subscription).subscription_code), customerId: s(customer.customer_code), status: "past_due" };
     default:

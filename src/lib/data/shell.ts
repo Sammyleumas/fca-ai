@@ -21,7 +21,7 @@ export async function getShellData(
       .eq("user_id", userId)
       .is("read_at", null)
       .lte("scheduled_for", new Date().toISOString()),
-    supabase.from("subscriptions").select("plan, status, current_period_end").eq("user_id", userId).maybeSingle(),
+    supabase.from("subscriptions").select("plan, status, current_period_end, grace_until").eq("user_id", userId).maybeSingle(),
   ]);
   const plan = effectivePlan((sub.data as SubscriptionState | null) ?? null);
   const isGuest = (await getSessionUser())?.isGuest ?? false;

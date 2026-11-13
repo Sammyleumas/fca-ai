@@ -27,7 +27,7 @@ export default async function BillingPage({ searchParams }: PageProps<"/settings
   const supabase = await createClient();
   const { data: sub } = await supabase
     .from("subscriptions")
-    .select("plan, status, provider, current_period_end, cancel_at_period_end, currency, billing_interval, amount_minor")
+    .select("plan, status, provider, current_period_end, grace_until, cancel_at_period_end, currency, billing_interval, amount_minor")
     .eq("user_id", user.id)
     .maybeSingle();
   const plan = effectivePlan((sub as SubscriptionState | null) ?? null);
@@ -63,12 +63,13 @@ export default async function BillingPage({ searchParams }: PageProps<"/settings
           <div>
             <p className="font-semibold">Premium via {sub.provider === "stripe" ? "Stripe" : "Paystack"} · {sub.status.replace("_", " ")}</p>
             <p className="text-sm text-fg-2">
-              {sub.current_period_end
+              {sub.status === "past_due"
+                ? `Your last payment failed. ${sub.grace_until && new Date(sub.grace_until) > new Date() ? `Premium stays on until ${dateFmt.format(new Date(sub.grace_until))} while we retry — ` : ""}update your payment details to keep Premium.`
+                : sub.current_period_end
                 ? sub.cancel_at_period_end || sub.status === "cancelled"
                   ? `Premium ends on ${dateFmt.format(new Date(sub.current_period_end))}.`
                   : `Renews on ${dateFmt.format(new Date(sub.current_period_end))}.`
                 : "Waiting for the first billing period from the provider."}
-              {sub.status === "past_due" && " Your last payment failed — update your payment details to keep Premium."}
             </p>
           </div>
           <ManageSubscription />

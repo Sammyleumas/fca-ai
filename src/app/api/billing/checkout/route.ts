@@ -29,7 +29,7 @@ export async function POST(request: NextRequest) {
 
   const { data: sub } = await createAdminClient()
     .from("subscriptions")
-    .select("plan, status, current_period_end, provider, provider_customer_id")
+    .select("plan, status, current_period_end, grace_until, provider, provider_customer_id")
     .eq("user_id", user.id)
     .maybeSingle();
   if (sub && effectivePlan(sub) === "premium" && sub.status !== "cancelled") {

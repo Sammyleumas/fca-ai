@@ -16,6 +16,12 @@ describe("entitlements", () => {
     expect(effectivePlan({ plan: "premium", status: "incomplete", current_period_end: "2027-01-01T00:00:00Z" }, now)).toBe("free");
     expect(effectivePlan({ plan: "free", status: "active", current_period_end: null }, now)).toBe("free");
   });
+  it("keeps Premium after a failed renewal only for the grace period, not the unpaid period", () => {
+    // Stripe moves current_period_end to the new (unpaid) period when a renewal fails.
+    expect(effectivePlan({ plan: "premium", status: "past_due", current_period_end: "2026-12-20T00:00:00Z", grace_until: "2026-11-25T00:00:00Z" }, now)).toBe("premium");
+    expect(effectivePlan({ plan: "premium", status: "past_due", current_period_end: "2026-12-20T00:00:00Z", grace_until: "2026-11-19T00:00:00Z" }, now)).toBe("free");
+    expect(effectivePlan({ plan: "premium", status: "past_due", current_period_end: "2026-12-20T00:00:00Z" }, now)).toBe("free");
+  });
 });
 
 describe("webhook signatures", () => {
@@ -50,17 +56,39 @@ describe("event mapping", () => {
     });
     expect(upd).toMatchObject({ status: "past_due", cancelAtPeriodEnd: true, currency: "USD", amountMinor: 500, interval: "month", currentPeriodEnd: new Date(1_800_000_000_000).toISOString() });
     expect(stripeEventToUpdate({ type: "customer.subscription.deleted", data: { object: { id: "sub_1", status: "active" } } })?.status).toBe("cancelled");
+    // An ended subscription stops at ended_at, not at a future (unpaid) period end.
+    const deleted = stripeEventToUpdate({ type: "customer.subscription.deleted", data: { object: { id: "sub_1", status: "canceled", ended_at: 1_790_000_000, items: { data: [{ current_period_end: 1_800_000_000 }] } } } });
+    expect(deleted).toMatchObject({ status: "cancelled", currentPeriodEnd: new Date(1_790_000_000_000).toISOString() });
+    const unpaid = stripeEventToUpdate({ type: "customer.subscription.updated", data: { object: { id: "sub_1", status: "unpaid", items: { data: [{ current_period_end: 1_800_000_000 }] } } } });
+    expect(unpaid?.status).toBe("cancelled");
+    expect(new Date(unpaid!.currentPeriodEnd!).getTime()).toBeLessThan(1_800_000_000_000);
+    expect(stripeEventToUpdate({ type: "customer.subscription.updated", data: { object: { id: "sub_1", status: "incomplete_expired" } } })?.status).toBe("incomplete");
     expect(stripeEventToUpdate({ type: "invoice.payment_failed", data: { object: { subscription: "sub_1" } } })).toMatchObject({ status: "past_due" });
   });
 
   it("maps Paystack charge, subscription and cancellation", () => {
-    expect(paystackEventToUpdate({ event: "charge.success", data: { amount: 350000, currency: "NGN", customer: { customer_code: "CUS_1", email: "a@b.c" }, plan: {}, metadata: {} } })).toBeNull();
+    const plans = ["PLN_1"];
+    expect(paystackEventToUpdate({ event: "charge.success", data: { amount: 350000, currency: "NGN", customer: { customer_code: "CUS_1", email: "a@b.c" }, plan: {}, metadata: {} } }, plans)).toBeNull();
     expect(
-      paystackEventToUpdate({ event: "charge.success", data: { amount: 350000, currency: "NGN", customer: { customer_code: "CUS_1" }, plan: { plan_code: "PLN_1", interval: "monthly" }, metadata: JSON.stringify({ user_id: "u1" }) } }),
+      paystackEventToUpdate({ event: "charge.success", data: { amount: 350000, currency: "NGN", customer: { customer_code: "CUS_1" }, plan: { plan_code: "PLN_1", interval: "monthly" }, metadata: JSON.stringify({ user_id: "u1" }) } }, plans),
     ).toMatchObject({ userId: "u1", customerId: "CUS_1", status: "active", interval: "month", amountMinor: 350000 });
-    expect(paystackEventToUpdate({ event: "subscription.create", data: { subscription_code: "SUB_1", email_token: "tok", status: "active", next_payment_date: "2026-12-20T00:00:00Z", customer: { customer_code: "CUS_1" }, plan: { plan_code: "PLN_1" } } })).toMatchObject({ subscriptionId: "SUB_1", emailToken: "tok", status: "active" });
-    expect(paystackEventToUpdate({ event: "subscription.disable", data: { subscription_code: "SUB_1" } })).toMatchObject({ status: "cancelled" });
-    expect(paystackEventToUpdate({ event: "subscription.not_renew", data: { subscription_code: "SUB_1" } })).toMatchObject({ cancelAtPeriodEnd: true });
+    expect(paystackEventToUpdate({ event: "subscription.create", data: { subscription_code: "SUB_1", email_token: "tok", status: "active", next_payment_date: "2026-12-20T00:00:00Z", customer: { customer_code: "CUS_1" }, plan: { plan_code: "PLN_1" } } }, plans)).toMatchObject({ subscriptionId: "SUB_1", emailToken: "tok", status: "active" });
+    const disabled = paystackEventToUpdate({ event: "subscription.disable", data: { subscription_code: "SUB_1" } }, plans);
+    expect(disabled).toMatchObject({ status: "cancelled" });
+    expect(new Date(disabled!.currentPeriodEnd!).getTime()).toBeLessThanOrEqual(Date.now());
+    expect(paystackEventToUpdate({ event: "subscription.not_renew", data: { subscription_code: "SUB_1" } }, plans)).toMatchObject({ cancelAtPeriodEnd: true });
+  });
+
+  it("never grants Paystack Premium for a charge that isn't for one of our plans at full price", () => {
+    const plans = ["PLN_1"];
+    // Payer-controlled metadata alone (e.g. an inline charge with plan_code in metadata) is ignored.
+    expect(paystackEventToUpdate({ event: "charge.success", data: { amount: 100, customer: { customer_code: "C" }, plan: {}, metadata: { user_id: "u1", plan_code: "PLN_1" } } }, plans)).toBeNull();
+    // Someone else's plan on the same account.
+    expect(paystackEventToUpdate({ event: "charge.success", data: { amount: 350000, customer: {}, plan: { plan_code: "PLN_OTHER" } } }, plans)).toBeNull();
+    // Underpaid.
+    expect(paystackEventToUpdate({ event: "charge.success", data: { amount: 100, customer: {}, plan: { plan_code: "PLN_1", amount: 350000 } } }, plans)).toBeNull();
+    // Verify API returns the plan as a code string.
+    expect(paystackEventToUpdate({ event: "charge.success", data: { amount: 350000, customer: {}, plan: "PLN_1" } }, plans)).toMatchObject({ planCode: "PLN_1" });
   });
 });
 

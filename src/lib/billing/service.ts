@@ -3,6 +3,9 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import type { ProviderId } from "./config";
 import type { SubscriptionUpdate } from "./webhooks";
 
+/** Days of Premium kept after a failed renewal while the provider retries the payment. */
+export const PAST_DUE_GRACE_DAYS = 7;
+
 /**
  * Applies a verified provider update to the student's subscription row.
  *  - finds the student by id, provider subscription id, customer id, then email
@@ -26,24 +29,26 @@ export async function applySubscriptionUpdate(provider: ProviderId, u: Subscript
   }
   if (!userId) return null;
 
-  const { data: current } = await admin.from("subscriptions").select("last_event_at, provider").eq("user_id", userId).maybeSingle();
-  if (current?.last_event_at && new Date(current.last_event_at as string) > eventTime && current.provider === provider) return userId;
-
-  const patch: Record<string, unknown> = { provider, last_event_at: eventTime.toISOString() };
-  if (u.plan) patch.plan = u.plan;
-  if (u.status) patch.status = u.status;
-  if (u.customerId) patch.provider_customer_id = u.customerId;
-  if (u.subscriptionId) patch.provider_subscription_id = u.subscriptionId;
-  if (u.currentPeriodEnd !== undefined && u.currentPeriodEnd !== null) patch.current_period_end = u.currentPeriodEnd;
-  if (u.cancelAtPeriodEnd !== undefined) patch.cancel_at_period_end = u.cancelAtPeriodEnd;
-  if (u.currency) patch.currency = u.currency.toUpperCase();
-  if (u.interval) patch.billing_interval = u.interval;
-  if (u.amountMinor !== undefined && u.amountMinor !== null) patch.amount_minor = u.amountMinor;
-  if (u.planCode) patch.provider_plan_code = u.planCode;
-  if (u.emailToken) patch.provider_email_token = u.emailToken;
-
-  const { error } = await admin.from("subscriptions").upsert({ user_id: userId, ...patch }, { onConflict: "user_id" });
+  // Atomic and order-safe: one SQL call locks the row, skips stale events and merges fields.
+  const { data: applied, error } = await admin.rpc("apply_subscription_update", {
+    p_user_id: userId,
+    p_provider: provider,
+    p_event_at: eventTime.toISOString(),
+    p_plan: u.plan ?? null,
+    p_status: u.status ?? null,
+    p_customer_id: u.customerId ?? null,
+    p_subscription_id: u.subscriptionId ?? null,
+    p_period_end: u.currentPeriodEnd ?? null,
+    p_cancel_at_period_end: u.cancelAtPeriodEnd ?? null,
+    p_currency: u.currency ?? null,
+    p_interval: u.interval ?? null,
+    p_amount_minor: u.amountMinor ?? null,
+    p_plan_code: u.planCode ?? null,
+    p_email_token: u.emailToken ?? null,
+    p_grace_days: PAST_DUE_GRACE_DAYS,
+  });
   if (error) throw new Error(`subscription update failed: ${error.message}`);
+  if (!applied) return userId; // older than what we already have
 
   if (u.status === "past_due") {
     await admin.from("notifications").insert({
@@ -62,7 +67,19 @@ export async function claimEvent(provider: ProviderId, eventId: string, eventTyp
   const admin = createAdminClient();
   const { error } = await admin.from("billing_events").insert({ provider, event_id: eventId.slice(0, 200), event_type: eventType.slice(0, 100) });
   if (!error) return true;
-  if (error.code === "23505") return false;
+  if (error.code === "23505") {
+    // Already received. If an earlier attempt crashed mid-way (never finished) more than
+    // 5 minutes ago, take it over so the provider's retry is processed, not dropped.
+    const { data } = await admin
+      .from("billing_events")
+      .update({ received_at: new Date().toISOString() })
+      .eq("provider", provider)
+      .eq("event_id", eventId.slice(0, 200))
+      .is("processed_at", null)
+      .lt("received_at", new Date(Date.now() - 5 * 60_000).toISOString())
+      .select("id");
+    return Boolean(data?.length);
+  }
   throw new Error(`could not record billing event: ${error.message}`);
 }
 

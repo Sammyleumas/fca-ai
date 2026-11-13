@@ -38,3 +38,8 @@ export function billingProviders(): ProviderConfig[] {
   }
   return out;
 }
+
+/** Our Premium plan codes on Paystack: only charges for these grant Premium. */
+export function paystackPlanCodes(): string[] {
+  return [process.env.PAYSTACK_PLAN_PREMIUM_MONTHLY, process.env.PAYSTACK_PLAN_PREMIUM_YEARLY].filter((c): c is string => Boolean(c));
+}

@@ -45,4 +45,11 @@ d("guest access (anonymous users)", () => {
     expect(list).not.toContain(fresh);
     await expect(asRole("authenticated", fresh, (c) => c.query("select public.stale_guest_ids(30, 10)"))).rejects.toThrow(/permission denied/);
   });
+
+  it("treats a guest who keeps using the app (refreshed session) as active, not stale", async () => {
+    const regular = await createGuest(45); // signed in 45 days ago...
+    await asSuperuser((c) => c.query("insert into auth.sessions (user_id, created_at, updated_at, refreshed_at) values ($1, now() - interval '45 days', now() - interval '1 day', (now() - interval '1 day')::timestamp)", [regular]));
+    const ids = await asRole("service_role", null, (c) => c.query<{ id: string }>("select public.stale_guest_ids(30, 500) as id"));
+    expect(ids.rows.map((r) => r.id)).not.toContain(regular); // ...but used it yesterday
+  });
 });

@@ -45,6 +45,10 @@ export async function signup(_prev: AuthState, formData: FormData): Promise<Auth
   if (!parsed.success) return { fields: fieldErrors(parsed.error), values: values(formData, ["name", "email"]) };
 
   const supabase = await createClient();
+  // A guest signing up would get a separate, empty account and lose their guest work:
+  // send them to "Save your account", which keeps everything.
+  const { data: current } = await supabase.auth.getClaims();
+  if (current?.claims?.is_anonymous === true) redirect("/account/save");
   const { data, error } = await supabase.auth.signUp({
     email: parsed.data.email,
     password: parsed.data.password,
@@ -176,5 +180,5 @@ export async function saveGuestAccount(_prev: AuthState, formData: FormData): Pr
       values: values(formData, ["email"]),
     };
   }
-  return { success: `Check ${parsed.data.email} — open the link we sent to confirm it, then choose a password. Keep this tab open until you do.` };
+  return { success: `Check ${parsed.data.email} — open the link we sent to confirm it, then choose a password. Open the link in this same browser.` };
 }

@@ -3,6 +3,7 @@ import { getSessionUser } from "@/lib/auth/dal";
 import { verifyPaystackTransaction } from "@/lib/billing/providers/paystack";
 import { applySubscriptionUpdate } from "@/lib/billing/service";
 import { paystackEventToUpdate } from "@/lib/billing/webhooks";
+import { paystackPlanCodes } from "@/lib/billing/config";
 
 /**
  * Paystack redirects here after checkout. The transaction is verified with
@@ -26,9 +27,10 @@ export async function GET(request: NextRequest) {
       target.searchParams.set("status", "failed");
       return NextResponse.redirect(target);
     }
-    const update = paystackEventToUpdate({ event: "charge.success", data: { ...tx, plan: tx.plan_object ?? tx.plan } });
+    const update = paystackEventToUpdate({ event: "charge.success", data: { ...tx, plan: tx.plan_object ?? tx.plan } }, paystackPlanCodes());
     if (update) await applySubscriptionUpdate("paystack", { ...update, userId: user.id }, tx.paid_at ? new Date(tx.paid_at) : new Date());
-    target.searchParams.set("status", update ? "success" : "processing");
+    // Verified, but not a payment for one of our Premium plans: nothing changes.
+    target.searchParams.set("status", update ? "success" : "failed");
   } catch {
     target.searchParams.set("status", "processing");
   }
