@@ -142,6 +142,23 @@ Feature services (segmentation, planner, quiz generation, grading, flashcards)
 depend only on the interface, so swapping providers is a config change.
 Large documents are processed in page-bounded chunks; never in one request.
 
-## 6. Phases
+## 6. Upload & document processing (Phase 2)
+
+```
+browser ──prepareUpload()──▶ server: validate, plan limits, duplicate check, insert material (status uploaded)
+        ◀── signed upload URL (2 h) ──┘
+browser ──PUT file (XHR, progress, abort)──▶ Supabase Storage  materials/{user}/{material}/{rand}-{name}
+browser ──finalizeUpload()──▶ server: verify object + size, queue job, after(): processPendingJobs()
+
+processPendingJobs (after-upload hook · status polling · cron)
+  └─ claim_processing_job()  (FOR UPDATE SKIP LOCKED, lease)
+       └─ runJob(): extract ─▶ ocr (8-page batches, resumable) ─▶ structure ─▶ ready + notification
+```
+
+`src/lib/materials/pipeline.ts` is storage-agnostic (`ProcessingStore`, `OcrService` interfaces), so it is
+unit-tested end to end with an in-memory store. `supabase-store.ts` is the production implementation
+(service role, used only by the worker).
+
+## 7. Phases
 
 See `docs/PHASES.md` for the detailed checklist and current status.

@@ -19,11 +19,14 @@
     "@supabase/supabase-js": "^2.119.0",
     "clsx": "^2.1.1",
     "lucide-react": "^1.72.0",
+    "mammoth": "^1.13.0",
     "motion": "^14.13.0",
     "next": "16.4.6",
+    "pdf-lib": "^1.17.1",
     "react": "19.3.0",
     "react-dom": "19.3.0",
     "server-only": "^0.0.1",
+    "unpdf": "^1.9.1",
     "zod": "^4.6.7"
   },
   "devDependencies": {
@@ -32,6 +35,7 @@
     "@types/pg": "^8.23.1",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "docx": "^9.15.3",
     "eslint": "^9",
     "eslint-config-next": "16.4.6",
     "pg": "^8.23.1",

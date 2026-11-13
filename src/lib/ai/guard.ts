@@ -5,7 +5,7 @@ import { limitsFor } from "@/lib/billing/plans";
 import { getShellData } from "@/lib/data/shell";
 import { AIError, type AIUsage } from "./types";
 
-export type AIFeature = "tutor_chat" | "segmentation" | "study_plan" | "quiz" | "grading" | "flashcards" | "explain";
+export type AIFeature = "tutor_chat" | "ocr" | "segmentation" | "study_plan" | "quiz" | "grading" | "flashcards" | "explain";
 
 /**
  * Entitlement + rate limiting before any AI call:

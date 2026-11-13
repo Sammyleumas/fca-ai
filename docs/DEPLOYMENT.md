@@ -23,7 +23,16 @@
 2. Environment variables (Production + Preview), see `.env.example`:
    `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`, `SUPABASE_SECRET_KEY`,
    `NEXT_PUBLIC_SITE_URL`, `AI_PROVIDER`, `ANTHROPIC_API_KEY` (optional `ANTHROPIC_MODEL`).
+   Also set `CRON_SECRET` (any long random string).
 3. Deploy. Build command `next build`, output handled automatically.
+4. **Background processing.** Processing starts automatically after each upload and continues while a student
+   has the library open. For processing that also continues when nobody is online, schedule the worker:
+   - Vercel Pro: add `mindflow/vercel.json` with
+     `{"crons": [{"path": "/api/jobs/process", "schedule": "* * * * *"}]}` — Vercel sends
+     `Authorization: Bearer $CRON_SECRET` automatically.
+   - Vercel Hobby (daily crons only) or elsewhere: call
+     `curl -H "Authorization: Bearer $CRON_SECRET" https://<domain>/api/jobs/process` from any scheduler every minute.
+   The function needs up to 300 s (`maxDuration`); on Hobby the limit is lower and jobs simply resume on the next call.
 
 ## 3. Verify after deploy
 
@@ -32,6 +41,8 @@
 - Forgot password → email → `/reset-password` → dashboard.
 - AI Tutor responds (requires `ANTHROPIC_API_KEY` and `SUPABASE_SECRET_KEY`).
 - Settings → Export downloads JSON; Delete account removes the user.
+- Library → upload a PDF, a DOCX and a TXT together → each reaches “Ready” and shows its chapters.
+- Upload a scanned PDF → pages are transcribed (requires `ANTHROPIC_API_KEY`).
 
 ## Security checklist
 

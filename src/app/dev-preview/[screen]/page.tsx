@@ -3,6 +3,8 @@ import { AppFrame } from "@/components/layout/app-frame";
 import { DashboardView } from "@/components/dashboard/dashboard-view";
 import { TutorChat } from "@/components/tutor/chat";
 import { TutorLayout } from "@/components/tutor/tutor-layout";
+import { LibraryView } from "@/components/library/library-view";
+import { applyLibraryQuery, filterCounts, parseLibraryQuery, type LibraryItem } from "@/lib/materials/library-filter";
 import type { DashboardData } from "@/lib/data/dashboard";
 import { addDaysISO, lastNDates, localDateISO } from "@/lib/utils/dates";
 
@@ -63,12 +65,40 @@ function sample(empty: boolean): DashboardData {
   };
 }
 
+function libraryItems(): LibraryItem[] {
+  const base: Omit<LibraryItem, "id" | "title" | "file_type" | "size_bytes" | "page_count" | "status" | "created_at"> = {
+    original_filename: "file.pdf", pages_are_estimated: false, status_detail: null, processing_progress: 100, processing_error: null,
+    processing_warning: null, last_opened_at: null, subject: null, folder: null, progress: 0, lastReadAt: null, plans: [],
+  };
+  const now = new Date().toISOString();
+  return [
+    { ...base, id: "m1", title: "Introduction to Computer Science", file_type: "pdf", size_bytes: 2_516_582, page_count: 300, status: "ready", created_at: now, progress: 68, subject: { id: "s1", name: "Computer Science", kind: "subject" }, plans: [{ id: "p1", title: "Exam prep", status: "active" }] },
+    { ...base, id: "m2", title: "Database Management Systems", file_type: "pdf", size_bytes: 1_887_436, page_count: 180, status: "ready", created_at: now, progress: 24 },
+    { ...base, id: "m3", title: "Software Engineering Notes", file_type: "docx", size_bytes: 839_680, page_count: 95, pages_are_estimated: true, status: "ready", created_at: now, folder: { id: "f1", name: "Semester 1", kind: "folder" } },
+    { ...base, id: "m4", title: "Mathematics Lecture Notes", file_type: "pdf", size_bytes: 1_153_434, page_count: null, status: "extracting", status_detail: "Recognising scanned pages (16/40)…", processing_progress: 58, created_at: now },
+    { ...base, id: "m5", title: "Physics Revision Guide", file_type: "pdf", size_bytes: 983_040, page_count: null, status: "failed", processing_error: "This PDF is password-protected. Remove the password and upload it again.", created_at: now },
+  ];
+}
+
 export default async function DevPreview({ params }: PageProps<"/dev-preview/[screen]">) {
   if (process.env.NODE_ENV !== "development") notFound();
   const { screen } = await params;
   const content =
     screen === "dashboard" || screen === "dashboard-empty" ? (
       <DashboardView data={sample(screen === "dashboard-empty")} name="Alex" greeting="Good morning" dailyGoal={60} plan="free" />
+    ) : screen === "library" || screen === "library-upload" ? (
+      <LibraryView
+        items={applyLibraryQuery(libraryItems(), parseLibraryQuery({}))}
+        total={5}
+        counts={filterCounts(libraryItems())}
+        query={parseLibraryQuery({})}
+        subjects={[{ id: "s1", name: "Computer Science", kind: "subject", exam_date: null }]}
+        folders={[{ id: "f1", name: "Semester 1", kind: "folder" }]}
+        maxBytes={25 * 1024 * 1024}
+        maxMaterials={5}
+        uploadOpen={screen === "library-upload"}
+        uploadsEnabled
+      />
     ) : screen === "tutor" ? (
       <TutorLayout conversations={[{ id: "c1", title: "How does TCP differ from UDP?", updated_at: "" }]}>
         <TutorChat

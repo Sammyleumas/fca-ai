@@ -1,5 +1,6 @@
 import "server-only";
 import { cache } from "react";
+import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { isSupabaseConfigured } from "@/lib/env";
@@ -12,6 +13,9 @@ export type SessionUser = { id: string; email: string | null };
  * Memoised per request with React cache().
  */
 export const getSessionUser = cache(async (): Promise<SessionUser | null> => {
+  // Always touch request cookies first so every route that checks the session is
+  // rendered per request, even in builds where Supabase isn't configured.
+  await cookies();
   if (!isSupabaseConfigured()) return null;
   const supabase = await createClient();
   const { data, error } = await supabase.auth.getClaims();

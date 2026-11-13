@@ -2,6 +2,8 @@
 
 Status legend: ✅ done & tested · 🟡 partial · ⏳ not started
 
+Current: **Phase 2 complete** · next: Phase 3 (AI intelligence).
+
 ## Phase 1 — Foundation ✅
 
 | Area | Status | Notes |
@@ -29,10 +31,26 @@ smoke checks across three viewports. Production build passes.
 (no credentials in the build sandbox). These paths are type-checked and follow the official SDK APIs; verify them
 against your Supabase project before launch.
 
-## Phase 2 — Material management ⏳
-Multi-file upload (drag & drop, progress, cancel, retry), validation & duplicate detection (checksum), private
-storage with signed URLs, library organisation (subjects/courses/exams/folders/collections), filters, replacement,
-deletion, PDF/DOCX/TXT extraction, OCR for scanned PDFs, background processing jobs with retry.
+## Phase 2 — Material management ✅
+
+| Area | Status | Notes |
+|---|---|---|
+| Multiple uploads | ✅ | Drag & drop or browse, many files at once, 2 concurrent uploads, per-file progress, cancel, retry, "upload anyway" for duplicates. Files go **directly from the browser to private storage** via short-lived signed upload URLs (no serverless body-size limit). |
+| Validation | ✅ | Client + server: extension/MIME, size (per plan), file-name sanitising (path traversal safe), plan material limit, upload rate limit (60/h); worker re-checks real content by magic bytes (spoofed types are rejected). |
+| Duplicate detection | ✅ | SHA-256 computed in the browser; the student chooses to skip or upload anyway. |
+| Library | ✅ | Filters: All, PDF, DOCX, TXT, Recently uploaded, Currently studying, Completed, Processing, Failed · search · subject & folder filters · sort (newest, recently opened, title, progress). Cards show name, type, size, page count, status, progress, subject/folder and associated study plan. |
+| Organisation | ✅ | Subjects, courses and examinations (with exam date), folders and personal collections: create, rename, delete (materials are kept). Move one or many materials. |
+| Multi-select | ✅ | Select several materials → combined study plan (opens the planner; plan generation is Phase 3), move, delete. |
+| Material page | ✅ | Metadata, processing progress & warnings, detected structure with page ranges and estimated reading time, inline PDF preview / extracted-text preview, download original (signed URL, 5 min), rename, organise, replace file, delete, retry. |
+| Replace / delete | ✅ | Replace keeps the material (and reading progress), rebuilds pages & sections, removes the old object. Delete removes every stored object, then the row (pages, sections, notes cascade). |
+| Extraction | ✅ | PDF via `unpdf` (PDF.js) with original page numbers; DOCX via `mammoth` with heading levels; TXT/Markdown with heading heuristics. DOCX/TXT are split into estimated pages **only between paragraphs**, headings always stay with their content. |
+| Structure | ✅ | Chapters → subtopics with page ranges from PDF bookmarks, DOCX heading styles, or typography (font size) as a fallback; running headers are ignored; reading time estimated at 160 wpm. AI segmentation into learning units is Phase 3. |
+| OCR | ✅ | Image-only PDF pages are sliced into 8-page PDFs and transcribed by the AI provider (Claude reads PDFs); usage is metered. Without an AI key, documents still process and show which pages have no text; fully scanned documents fail with a clear message. |
+| Background processing | ✅ | Postgres job queue with `claim_processing_job()` (SKIP LOCKED + lease), resumable state machine (extract → OCR → structure) that yields before the time budget, retries transient errors with exponential backoff (3 attempts), never retries file problems, notifies the student when ready or failed. Triggered after upload, by status polling, and by an optional cron (`/api/jobs/process`). Stale unfinished uploads are swept. |
+
+**Tests added:** file validation & sniffing, pagination, section building, PDF (text, outline, typography headings, scanned pages, corrupted), DOCX (heading levels, corrupted), TXT; pipeline end-to-end with an in-memory store (OCR, missing OCR, fully scanned, spoofed type, deadline yield + resume, retry/backoff, OCR rate limiting); library filters; queue claiming under concurrency, lease expiry, one active job per material, no student access. Extraction verified inside the production Next.js server bundle.
+
+**Not verified here:** real uploads to Supabase Storage and real OCR calls (no credentials in the sandbox).
 
 ## Phase 3 — AI intelligence ⏳
 Chunked document analysis, chapter → subtopic → learning-unit segmentation with page references, individual &

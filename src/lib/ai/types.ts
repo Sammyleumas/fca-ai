@@ -41,4 +41,6 @@ export interface AIProvider {
   readonly name: string;
   streamText(options: GenerateOptions): AITextStream;
   generateObject<T>(options: GenerateOptions & { schema: z.ZodType<T> }): Promise<{ object: T; usage: AIUsage }>;
+  /** Optional: transcribe the text of every page of a (small) PDF, in order. Used as OCR. */
+  transcribePdf?(pdf: Uint8Array, pageCount: number, signal?: AbortSignal): Promise<{ pages: string[]; usage: AIUsage }>;
 }
