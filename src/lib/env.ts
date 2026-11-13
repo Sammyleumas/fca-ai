@@ -8,6 +8,15 @@ import { z } from "zod";
  * a missing "https://", a trailing slash or "/rest/v1"), so they are normalised
  * before use rather than crashing the app.
  */
+/**
+ * FCA-AI's own Supabase project. Both values are public by design (the publishable
+ * key only works under Row Level Security), so they ship as defaults and the app
+ * works even before any hosting environment variables are set. Environment
+ * variables still take precedence (e.g. for a staging project).
+ */
+export const DEFAULT_SUPABASE_URL = "https://hpsoenqovicutnztjyqd.supabase.co";
+export const DEFAULT_SUPABASE_PUBLISHABLE_KEY = "sb_publishable_cPCOmTtx8SuZr5sPVE0R6w_-la7eHqJ";
+
 function clean(v: string | undefined): string | undefined {
   const s = v?.trim().replace(/^["']|["']$/g, "").trim();
   return s ? s : undefined;
@@ -28,8 +37,11 @@ export function normaliseSupabaseUrl(raw: string | undefined): string | undefine
 
 /** The configured Supabase URL and publishable key, or null when missing/invalid. */
 export function supabasePublicConfig(): { url: string; key: string } | null {
-  const url = normaliseSupabaseUrl(process.env.NEXT_PUBLIC_SUPABASE_URL);
-  const key = clean(process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY) ?? clean(process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY);
+  const url = normaliseSupabaseUrl(process.env.NEXT_PUBLIC_SUPABASE_URL) ?? DEFAULT_SUPABASE_URL;
+  const key =
+    clean(process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY) ??
+    clean(process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) ??
+    DEFAULT_SUPABASE_PUBLISHABLE_KEY;
   if (!url || !key || key.length < 20) return null;
   return { url, key };
 }

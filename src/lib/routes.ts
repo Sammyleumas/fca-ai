@@ -1,6 +1,6 @@
 /** Route groups used by the proxy for optimistic redirects. */
 export const AUTH_ROUTES = ["/login", "/signup", "/forgot-password"] as const;
-export const PUBLIC_ROUTES = ["/", "/verify-email", "/reset-password", "/auth", "/legal"] as const;
+export const PUBLIC_ROUTES = ["/", "/verify-email", "/reset-password", "/auth", "/legal", "/setup-required"] as const;
 
 export function isAuthRoute(pathname: string) {
   return AUTH_ROUTES.some((r) => pathname === r || pathname.startsWith(`${r}/`));

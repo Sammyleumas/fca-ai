@@ -29,6 +29,13 @@
 
 ## 2. Vercel
 
+> The app ships with FCA-AI's Supabase project URL and publishable key built in
+> (`src/lib/env.ts`; both are public by design), so sign-in works without setting
+> them. Set `NEXT_PUBLIC_SUPABASE_URL` / `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` only to use a
+> different project. `SUPABASE_SECRET_KEY` is still required for AI replies, background
+> jobs and account deletion — it is never built in.
+
+
 1. Import the `Sammyleumas/fca-ai` repository (the app is at the repository root; framework preset: Next.js).
 2. Environment variables (Production + Preview), see `.env.example`:
    `NEXT_PUBLIC_SUPABASE_URL` (Project Settings → API → Project URL), `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`

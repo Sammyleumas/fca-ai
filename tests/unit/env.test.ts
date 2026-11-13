@@ -14,3 +14,18 @@ describe("Supabase URL normalisation (values pasted into hosting dashboards)", (
     expect(normaliseSupabaseUrl("https://")).toBeUndefined();
   });
 });
+
+describe("built-in Supabase project", () => {
+  it("is used when no environment variables are set, and env vars override it", async () => {
+    const { supabasePublicConfig, DEFAULT_SUPABASE_URL } = await import("@/lib/env");
+    const saved = { ...process.env };
+    delete process.env.NEXT_PUBLIC_SUPABASE_URL;
+    delete process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
+    delete process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+    expect(supabasePublicConfig()?.url).toBe(DEFAULT_SUPABASE_URL);
+    process.env.NEXT_PUBLIC_SUPABASE_URL = "other.supabase.co";
+    process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY = "sb_publishable_xxxxxxxxxxxxxxxxxxxx";
+    expect(supabasePublicConfig()).toEqual({ url: "https://other.supabase.co", key: "sb_publishable_xxxxxxxxxxxxxxxxxxxx" });
+    process.env = saved;
+  });
+});
