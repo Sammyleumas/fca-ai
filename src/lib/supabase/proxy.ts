@@ -1,16 +1,17 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 import { isAuthRoute, isPublicRoute } from "@/lib/routes";
+import { supabasePublicConfig } from "@/lib/env";
 
 /**
  * Refreshes the Supabase session cookie and performs optimistic redirects.
  * This is NOT the security boundary — pages, actions and RLS re-verify access.
  */
 export async function updateSession(request: NextRequest) {
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const key = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY ?? process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
   let response = NextResponse.next({ request });
-  if (!url || !key) return response; // Not configured: pages render a setup notice.
+  const config = supabasePublicConfig();
+  if (!config) return response; // Not configured: pages render a setup notice.
+  const { url, key } = config;
 
   const supabase = createServerClient(url, key, {
     cookies: {

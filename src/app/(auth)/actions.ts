@@ -2,6 +2,7 @@
 
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { isSupabaseConfigured } from "@/lib/env";
 import { siteUrl } from "@/lib/site-url";
 import { safeNextPath } from "@/lib/routes";
 import {
@@ -15,6 +16,11 @@ import {
 
 export type AuthState = { error?: string; fields?: FieldErrors; success?: string; values?: Record<string, string> };
 
+/** Shown instead of crashing when this deployment has no (valid) Supabase settings. */
+const NOT_CONFIGURED: AuthState = {
+  error: "Accounts aren't available on this site yet: it isn't connected to its database. Please try again later.",
+};
+
 function values(formData: FormData, keys: string[]) {
   return Object.fromEntries(keys.map((k) => [k, String(formData.get(k) ?? "")]));
 }
@@ -23,6 +29,7 @@ export async function login(_prev: AuthState, formData: FormData): Promise<AuthS
   const parsed = loginSchema.safeParse(Object.fromEntries(formData));
   if (!parsed.success) return { fields: fieldErrors(parsed.error), values: values(formData, ["email"]) };
 
+  if (!isSupabaseConfigured()) return NOT_CONFIGURED;
   const supabase = await createClient();
   const { error } = await supabase.auth.signInWithPassword({
     email: parsed.data.email,
@@ -44,6 +51,7 @@ export async function signup(_prev: AuthState, formData: FormData): Promise<Auth
   const parsed = signupSchema.safeParse(Object.fromEntries(formData));
   if (!parsed.success) return { fields: fieldErrors(parsed.error), values: values(formData, ["name", "email"]) };
 
+  if (!isSupabaseConfigured()) return NOT_CONFIGURED;
   const supabase = await createClient();
   // A guest signing up would get a separate, empty account and lose their guest work:
   // send them to "Save your account", which keeps everything.
@@ -74,6 +82,7 @@ export async function signup(_prev: AuthState, formData: FormData): Promise<Auth
 export async function requestPasswordReset(_prev: AuthState, formData: FormData): Promise<AuthState> {
   const parsed = forgotSchema.safeParse(Object.fromEntries(formData));
   if (!parsed.success) return { fields: fieldErrors(parsed.error), values: values(formData, ["email"]) };
+  if (!isSupabaseConfigured()) return NOT_CONFIGURED;
   const supabase = await createClient();
   await supabase.auth.resetPasswordForEmail(parsed.data.email, {
     redirectTo: `${await siteUrl()}/auth/confirm?next=/reset-password`,
@@ -85,6 +94,7 @@ export async function requestPasswordReset(_prev: AuthState, formData: FormData)
 export async function updatePassword(_prev: AuthState, formData: FormData): Promise<AuthState> {
   const parsed = resetSchema.safeParse(Object.fromEntries(formData));
   if (!parsed.success) return { fields: fieldErrors(parsed.error) };
+  if (!isSupabaseConfigured()) return NOT_CONFIGURED;
   const supabase = await createClient();
   const { data } = await supabase.auth.getClaims();
   if (!data?.claims) return { error: "Your reset link has expired. Request a new one." };
@@ -103,6 +113,7 @@ export async function updatePassword(_prev: AuthState, formData: FormData): Prom
 export async function resendVerification(_prev: AuthState, formData: FormData): Promise<AuthState> {
   const parsed = forgotSchema.safeParse(Object.fromEntries(formData));
   if (!parsed.success) return { fields: fieldErrors(parsed.error) };
+  if (!isSupabaseConfigured()) return NOT_CONFIGURED;
   const supabase = await createClient();
   const { error } = await supabase.auth.resend({
     type: "signup",
@@ -120,6 +131,7 @@ export async function signInWithProvider(formData: FormData) {
   const provider = OAUTH_PROVIDERS[key];
   if (!provider) redirect("/login?error=provider");
   const next = safeNextPath(String(formData.get("next") ?? ""));
+  if (!isSupabaseConfigured()) redirect("/login?error=oauth_unavailable");
   const supabase = await createClient();
   const { data, error } = await supabase.auth.signInWithOAuth({
     provider,
@@ -139,6 +151,7 @@ export async function signInWithProvider(formData: FormData) {
  */
 export async function continueAsGuest(_prev: AuthState, formData: FormData): Promise<AuthState> {
   void formData;
+  if (!isSupabaseConfigured()) return NOT_CONFIGURED;
   const supabase = await createClient();
   // Already in a session (guest or not)? Reuse it rather than creating another guest.
   const { data: current } = await supabase.auth.getClaims();
@@ -161,6 +174,7 @@ export async function continueAsGuest(_prev: AuthState, formData: FormData): Pro
 export async function saveGuestAccount(_prev: AuthState, formData: FormData): Promise<AuthState> {
   const parsed = forgotSchema.safeParse(Object.fromEntries(formData));
   if (!parsed.success) return { fields: fieldErrors(parsed.error), values: values(formData, ["email"]) };
+  if (!isSupabaseConfigured()) return NOT_CONFIGURED;
   const supabase = await createClient();
   const { data } = await supabase.auth.getClaims();
   if (!data?.claims) redirect("/login");
