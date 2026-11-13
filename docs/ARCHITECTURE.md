@@ -15,7 +15,7 @@ kept up to date as each phase lands (see `docs/PHASES.md` for status).
 | Icons | `lucide-react` | |
 | Backend | Supabase: Postgres, Auth, Storage, RLS | Accessed only through `@supabase/ssr` clients created per request. |
 | Validation | `zod` | Every server action / route handler validates its input. |
-| AI | `src/lib/ai` provider abstraction; default provider Anthropic (`@anthropic-ai/sdk`, model `claude-opus-5-5`) | Server-only. Providers are swappable via `AI_PROVIDER`. |
+| AI | `src/lib/ai` provider abstraction; provider Google Gemini (`@google/genai`, Gemini Developer API, default model `gemini-3.8-flash`, override `GEMINI_MODEL`) | Server-only (`GEMINI_API_KEY`, never `NEXT_PUBLIC_`). Providers are swappable via `AI_PROVIDER`. |
 | Tests | Vitest (unit), Postgres-backed RLS/SQL tests, Playwright (UI smoke) | |
 | Deploy | Vercel + Supabase | See `docs/DEPLOYMENT.md`. |
 
@@ -51,7 +51,7 @@ fca-ai/   (repository root)
    ├─ lib/
    │  ├─ supabase/           server / browser / proxy / admin clients
    │  ├─ auth/               data-access layer (`requireUser`, `getProfile`)
-   │  ├─ ai/                 provider interface, Anthropic provider, prompts, guards
+   │  ├─ ai/                 provider interface, Gemini provider, prompts, guards
    │  ├─ billing/            plan limits, entitlement checks (server-side)
    │  ├─ data/               typed queries per domain (dashboard, materials, …)
    │  ├─ validation/         zod schemas shared by forms and actions
@@ -132,8 +132,8 @@ checks, time-zone aware), `check_rate_limit()`, `set_updated_at()`.
 ```
 lib/ai/
   types.ts          AIProvider interface: generateText, generateObject (zod), streamText
-  providers/anthropic.ts
-  index.ts          getAIProvider() — chosen by AI_PROVIDER env, default "anthropic"
+  providers/gemini.ts  streaming, JSON-schema structured output, PDF OCR, error mapping
+  index.ts          getAIProvider() — chosen by AI_PROVIDER env, default "gemini"
   guard.ts          entitlement + usage metering + rate limiting wrapper
   prompts/          system prompts per feature (tutor, segmentation, planner, quiz…)
 ```

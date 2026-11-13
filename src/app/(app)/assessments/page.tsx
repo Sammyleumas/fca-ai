@@ -75,7 +75,7 @@ export default async function AssessmentsPage({ searchParams }: PageProps<"/asse
           {isAIConfigured() ? (
             <NewQuizForm materials={sources.materials} plans={sources.plans} defaultMock={sp.mock === "1"} />
           ) : (
-            <FormMessage tone="info">AI quizzes aren&apos;t configured on this server yet (missing ANTHROPIC_API_KEY).</FormMessage>
+            <FormMessage tone="info">AI quizzes aren&apos;t configured on this server yet (missing GEMINI_API_KEY).</FormMessage>
           )}
         </div>
       </GlassCard>
