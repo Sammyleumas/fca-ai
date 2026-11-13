@@ -1,9 +1,9 @@
 import type { NextConfig } from "next";
 
-import { normaliseSupabaseUrl } from "./src/lib/env";
+import { supabasePublicConfig } from "./src/lib/env";
 
-// Same normalisation as the app (tolerates a missing "https://", trailing slash, etc.).
-const supabase = normaliseSupabaseUrl(process.env.NEXT_PUBLIC_SUPABASE_URL) ?? "";
+// Same Supabase URL the app uses (env var, normalised, or the built-in default).
+const supabase = supabasePublicConfig()?.url ?? "";
 const supabaseWs = supabase.replace(/^http/, "ws");
 const dev = process.env.NODE_ENV !== "production";
 

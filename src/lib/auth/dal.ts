@@ -37,6 +37,8 @@ export async function requireUser(): Promise<SessionUser> {
 export const getProfile = cache(async (userId: string): Promise<ProfileRow | null> => {
   const supabase = await createClient();
   const { data, error } = await supabase.from("profiles").select("*").eq("id", userId).maybeSingle();
+  // Tables missing: the database hasn't been set up yet (supabase/setup.sql not run).
+  if (error && ["PGRST205", "42P01", "PGRST202"].includes(error.code)) redirect("/setup-required");
   if (error) throw new Error("Could not load your profile.");
   return data as ProfileRow | null;
 });
