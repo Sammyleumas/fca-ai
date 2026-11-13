@@ -52,8 +52,9 @@ export default function WelcomePage() {
             Sign In
           </ButtonLink>
         </div>
-        <GuestButton variant="ghost" note={false} className="mt-3 w-full sm:w-fit [&_button]:sm:px-2" />
-        <p className="mt-1 text-sm text-muted">No email needed to try it. Save your work with an account whenever you like.</p>
+        {/* Guest access: a full-width button on phones, a lighter link-style button on larger screens. */}
+        <GuestButton variant="secondary" note={false} className="mt-3 w-full sm:w-fit [&_button]:border-accent-2/50 sm:[&_button]:border-transparent sm:[&_button]:bg-transparent sm:[&_button]:px-2" />
+        <p className="mt-2 text-center text-sm text-muted sm:text-left">No email needed to try it. Save your work with an account whenever you like.</p>
 
         <section aria-labelledby="how" className="mt-20 md:mt-28">
           <h2 id="how" className="text-sm font-semibold uppercase tracking-[0.18em] text-fg-2">

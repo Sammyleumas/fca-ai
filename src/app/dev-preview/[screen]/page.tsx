@@ -136,7 +136,8 @@ function sampleAnalytics(): AnalyticsSummary {
   };
 }
 
-export default async function DevPreview({ params }: PageProps<"/dev-preview/[screen]">) {
+export default async function DevPreview({ params, searchParams }: PageProps<"/dev-preview/[screen]">) {
+  const guest = (await searchParams).guest === "1";
   if (process.env.NODE_ENV !== "development") notFound();
   const { screen } = await params;
   const content =
@@ -189,7 +190,7 @@ export default async function DevPreview({ params }: PageProps<"/dev-preview/[sc
     ) : null;
   if (!content) notFound();
   return (
-    <AppFrame name="Alex Chen" avatarUrl={null} plan="free" unread={2}>
+    <AppFrame name={guest ? "Guest" : "Alex Chen"} avatarUrl={null} plan="free" unread={2} isGuest={guest}>
       {content}
     </AppFrame>
   );
