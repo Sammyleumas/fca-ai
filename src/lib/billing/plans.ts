@@ -1,7 +1,20 @@
 import type { SubscriptionPlan } from "@/types/db";
 
+/** Limits apply per tier: guests (no account yet) get a smaller taste of the Free plan. */
+export type LimitTier = SubscriptionPlan | "guest";
+
 /** Single source of truth for plan limits. Enforced server-side only. */
 export const PLAN_LIMITS = {
+  guest: {
+    label: "Guest",
+    maxMaterials: 2,
+    maxUploadBytes: 10 * 1024 * 1024,
+    activeStudyPlans: 1,
+    aiMessagesPerDay: 10,
+    quizzesPerDay: 1,
+    flashcardsPerMaterial: 15,
+    advancedAnalytics: false,
+  },
   free: {
     label: "Free",
     maxMaterials: 5,
@@ -22,10 +35,15 @@ export const PLAN_LIMITS = {
     flashcardsPerMaterial: 300,
     advancedAnalytics: true,
   },
-} as const satisfies Record<SubscriptionPlan, Record<string, unknown>>;
+} as const satisfies Record<LimitTier, Record<string, unknown>>;
 
-export type PlanLimits = (typeof PLAN_LIMITS)[SubscriptionPlan];
+export type PlanLimits = (typeof PLAN_LIMITS)[LimitTier];
 
-export function limitsFor(plan: SubscriptionPlan): PlanLimits {
-  return PLAN_LIMITS[plan];
+export function limitsFor(tier: LimitTier): PlanLimits {
+  return PLAN_LIMITS[tier];
+}
+
+/** Guests always get guest limits (they can't pay without an account). */
+export function limitTier(plan: SubscriptionPlan, isGuest: boolean): LimitTier {
+  return isGuest ? "guest" : plan;
 }

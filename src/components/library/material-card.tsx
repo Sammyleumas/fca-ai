@@ -45,7 +45,7 @@ export function MaterialCard({
           <FileBadge type={item.file_type} size={42} />
           <span
             className={cn(
-              "absolute -left-1.5 -top-1.5 flex size-5 items-center justify-center rounded-full border text-[#0b0c0b] transition peer-focus-visible:ring-2 peer-focus-visible:ring-accent",
+              "absolute -left-1.5 -top-1.5 flex size-5 items-center justify-center rounded-full border text-[#000000] transition peer-focus-visible:ring-2 peer-focus-visible:ring-accent",
               selected ? "border-accent bg-accent" : "border-line-strong bg-bg-2 opacity-0 group-hover:opacity-100 peer-focus-visible:opacity-100",
             )}
             aria-hidden="true"

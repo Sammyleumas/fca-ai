@@ -104,7 +104,7 @@ export default async function MaterialPage({ params }: PageProps<"/library/[id]"
           aiEnabled={isAIConfigured()}
           subjects={library.subjects}
           folders={library.folders}
-          maxBytes={limitsFor(shell.plan).maxUploadBytes}
+          maxBytes={limitsFor(shell.tier).maxUploadBytes}
         />
       </GlassCard>
 
@@ -184,7 +184,7 @@ export default async function MaterialPage({ params }: PageProps<"/library/[id]"
           </p>
         </div>
         {m.status === "ready" && (
-          <Link href={`/reader/${m.id}`} className="focus-ring inline-flex h-11 items-center gap-2 rounded-full bg-accent px-5 text-sm font-semibold text-[#0b0c0b] hover:bg-[#e2ff63]">
+          <Link href={`/reader/${m.id}`} className="focus-ring inline-flex h-11 items-center gap-2 rounded-full bg-accent px-5 text-sm font-semibold text-[#000000] hover:bg-[#e2ff63]">
             <BookOpenText className="size-4" aria-hidden="true" /> Read
           </Link>
         )}

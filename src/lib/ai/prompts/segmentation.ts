@@ -1,7 +1,7 @@
 import type { AnalysisWindow } from "@/lib/materials/segmentation";
 
 export const SEGMENTATION_SYSTEM_PROMPT = [
-  "You are MindFlow's document analyst. You divide study material into small, meaningful learning units for a student's study plan.",
+  "You are FCA-AI's document analyst. You divide study material into small, meaningful learning units for a student's study plan.",
   "",
   "Rules for units:",
   "- Each unit covers one coherent idea or subtopic and takes roughly 5–30 minutes to study.",

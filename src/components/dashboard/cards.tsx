@@ -127,7 +127,7 @@ export function StreakCard({
                     className={cn(
                       "w-full max-w-4 rounded-full transition-[height] duration-700",
                       w.qualified
-                        ? "bg-gradient-to-t from-accent-2 to-accent shadow-[0_0_14px_rgba(214,255,53,0.55)]"
+                        ? "bg-gradient-to-t from-[#ffd600] to-accent shadow-[0_0_14px_rgba(255,235,59,0.55)]"
                         : w.minutes > 0
                           ? "bg-accent/40"
                           : "bg-white/10",
@@ -209,8 +209,8 @@ export function MissionCard({
           title="Nothing scheduled for today"
           description={
             hasMaterials
-              ? "Create a study plan and MindFlow will assign daily sections from your materials."
-              : "Upload your first learning material, then MindFlow can build your daily plan."
+              ? "Create a study plan and FCA-AI will assign daily sections from your materials."
+              : "Upload your first learning material, then FCA-AI can build your daily plan."
           }
           action={
             <ButtonLink href={hasMaterials ? "/planner/new" : "/library?upload=1"} size="sm">

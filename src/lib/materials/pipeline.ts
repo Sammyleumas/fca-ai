@@ -373,7 +373,7 @@ async function finish(
     kind: "processing",
     title: `“${material.title.slice(0, 120)}” is ready`,
     body: units
-      ? `MindFlow organised it into ${units} learning units, ready for your study plan.`
+      ? `FCA-AI organised it into ${units} learning units, ready for your study plan.`
       : leaves.length
         ? `We found ${leaves.length} sections, ready for your study plan.`
         : "Your material is ready to study.",

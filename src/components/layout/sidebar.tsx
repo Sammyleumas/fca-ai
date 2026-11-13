@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { SignOutForm } from "./sign-out-button";
 import { usePathname } from "next/navigation";
 import { ArrowRight, Crown, LogOut } from "lucide-react";
 import { Logo, LogoMark } from "@/components/brand/logo";
@@ -9,7 +10,7 @@ import { Avatar } from "./avatar";
 import { NAV_ITEMS, isActive } from "./nav-config";
 import { cn } from "@/lib/utils/format";
 
-export function Sidebar({ name, avatarUrl, plan }: { name: string; avatarUrl: string | null; plan: "free" | "premium" }) {
+export function Sidebar({ name, avatarUrl, plan, isGuest = false }: { name: string; avatarUrl: string | null; plan: "free" | "premium"; isGuest?: boolean }) {
   const pathname = usePathname();
   return (
     <aside
@@ -17,7 +18,7 @@ export function Sidebar({ name, avatarUrl, plan }: { name: string; avatarUrl: st
       aria-label="Primary"
     >
       <div className="flex h-24 items-center justify-center px-5 lg:justify-start lg:px-6">
-        <Link href="/dashboard" className="focus-ring rounded-xl" aria-label="MindFlow dashboard">
+        <Link href="/dashboard" className="focus-ring rounded-xl" aria-label="FCA-AI dashboard">
           <span className="lg:hidden">
             <LogoMark className="h-9" />
           </span>
@@ -40,7 +41,7 @@ export function Sidebar({ name, avatarUrl, plan }: { name: string; avatarUrl: st
                   className={cn(
                     "focus-ring group flex h-12 items-center gap-3.5 rounded-2xl px-3.5 text-[15px] font-medium transition md:justify-center lg:justify-start",
                     active
-                      ? "bg-gradient-to-r from-accent to-accent-2/80 text-[#0b0c0b] glow-accent"
+                      ? "bg-accent text-[#000000] glow-accent"
                       : "text-fg-2 hover:bg-white/5 hover:text-fg",
                   )}
                 >
@@ -54,7 +55,7 @@ export function Sidebar({ name, avatarUrl, plan }: { name: string; avatarUrl: st
       </nav>
 
       <div className="space-y-3 p-3 lg:p-5">
-        {plan === "free" && (
+        {plan === "free" && !isGuest && (
           <div className="glass hidden rounded-2xl p-4 lg:block">
             <div className="flex items-center gap-3">
               <span className="flex size-9 items-center justify-center rounded-full bg-warning/15 text-warning">
@@ -73,19 +74,17 @@ export function Sidebar({ name, avatarUrl, plan }: { name: string; avatarUrl: st
             <Avatar name={name} url={avatarUrl} />
             <span className="hidden min-w-0 lg:block">
               <span className="block truncate text-sm font-semibold">{name}</span>
-              <span className="block text-xs text-fg-2">{plan === "premium" ? "Premium" : "Student"}</span>
+              <span className="block text-xs text-fg-2">{isGuest ? "Guest" : plan === "premium" ? "Premium" : "Student"}</span>
             </span>
           </Link>
-          <form action="/auth/signout" method="post" className="hidden lg:block">
-            <button
-              type="submit"
-              className="focus-ring flex size-9 items-center justify-center rounded-xl text-fg-2 hover:bg-white/5 hover:text-fg"
-              aria-label="Sign out"
-              title="Sign out"
-            >
-              <LogOut className="size-[18px]" />
-            </button>
-          </form>
+          <SignOutForm
+            guest={isGuest}
+            className="hidden lg:block"
+            buttonClassName="focus-ring flex size-9 items-center justify-center rounded-xl text-fg-2 hover:bg-white/5 hover:text-fg"
+            label="Sign out"
+          >
+            <LogOut className="size-[18px]" />
+          </SignOutForm>
         </div>
       </div>
     </aside>

@@ -147,7 +147,7 @@ export function TutorChat({
               <div
                 className={cn(
                   "max-w-[88%] rounded-3xl px-4 py-3 text-[15px] sm:max-w-[75%]",
-                  m.role === "user" ? "rounded-br-lg bg-accent text-[#0b0c0b]" : "glass rounded-bl-lg text-fg/90",
+                  m.role === "user" ? "rounded-br-lg bg-accent text-[#000000]" : "glass rounded-bl-lg text-fg/90",
                 )}
               >
                 {m.role === "assistant" ? (
@@ -226,7 +226,7 @@ export function TutorChat({
           <button
             type="submit"
             disabled={busy || !input.trim()}
-            className="focus-ring flex size-11 shrink-0 items-center justify-center rounded-full bg-accent text-[#0b0c0b] transition hover:bg-[#e2ff63] disabled:opacity-40"
+            className="focus-ring flex size-11 shrink-0 items-center justify-center rounded-full bg-accent text-[#000000] transition hover:bg-[#e2ff63] disabled:opacity-40"
             aria-label="Send"
           >
             {busy ? <Loader2 className="size-5 animate-spin" /> : <SendHorizontal className="size-5" />}

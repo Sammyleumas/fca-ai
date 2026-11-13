@@ -30,7 +30,7 @@ export function PlanTimeline({ plan, today }: { plan: PlanDetail; today: string 
                 {allDone && sessions.some((s) => s.kind !== "assessment") ? (
                   <CheckCircle2 className="size-6 text-accent" aria-label="Completed" />
                 ) : (
-                  <span className={cn("size-6 rounded-full border-2", date === today ? "border-accent shadow-[0_0_10px_rgba(214,255,53,0.6)]" : "border-line-strong")} aria-hidden="true" />
+                  <span className={cn("size-6 rounded-full border-2", date === today ? "border-accent shadow-[0_0_10px_rgba(255,235,59,0.6)]" : "border-line-strong")} aria-hidden="true" />
                 )}
                 <p className="font-semibold">
                   {n ? `Day ${n}` : "Quiz"} <span className="font-normal text-fg-2">· {relativeDayLabel(date, today)}</span>

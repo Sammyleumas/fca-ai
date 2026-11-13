@@ -1,5 +1,5 @@
 /**
- * Row types for the tables MindFlow reads. These mirror supabase/migrations.
+ * Row types for the tables FCA-AI reads. These mirror supabase/migrations.
  * Regenerate full types with `npx supabase gen types typescript --linked` once a
  * project is linked; these hand-written types keep the data layer explicit.
  */
@@ -38,6 +38,8 @@ export interface ProfileRow {
   education_level: EducationLevel | null;
   learning_goals: string[];
   daily_study_minutes: number;
+  weekly_goal_minutes: number;
+  weekly_goal_days: number;
   preferred_study_time: "morning" | "afternoon" | "evening" | "night" | "flexible" | null;
   timezone: string;
   notification_prefs: NotificationPrefs;

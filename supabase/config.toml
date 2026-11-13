@@ -1,5 +1,5 @@
 # Supabase CLI configuration for local development (`npx supabase start`).
-project_id = "mindflow"
+project_id = "fca-ai"
 
 [api]
 enabled = true
@@ -20,6 +20,8 @@ file_size_limit = "100MiB"
 enabled = true
 site_url = "http://localhost:3000"
 additional_redirect_urls = ["http://localhost:3000/auth/confirm", "http://localhost:3000/auth/callback"]
+# "Continue as guest" (anonymous sign-ins). Turn on CAPTCHA in production to limit abuse.
+enable_anonymous_sign_ins = true
 jwt_expiry = 3600
 enable_refresh_token_rotation = true
 enable_signup = true

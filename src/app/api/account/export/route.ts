@@ -19,14 +19,18 @@ export async function GET() {
   if (allowed === false) return NextResponse.json({ error: "Too many exports. Try again later." }, { status: 429 });
 
   const out: Record<string, unknown> = { exported_at: new Date().toISOString(), user: { id: user.id, email: user.email } };
+  // Some tables expose only selected columns to students (e.g. no provider tokens).
+  const COLUMNS: Partial<Record<(typeof TABLES)[number], string>> = {
+    subscriptions: "plan, status, provider, current_period_end, cancel_at_period_end, currency, billing_interval, amount_minor, created_at",
+  };
   for (const table of TABLES) {
-    const { data, error } = await supabase.from(table).select("*").limit(10000);
+    const { data, error } = await supabase.from(table).select(COLUMNS[table] ?? "*").limit(10000);
     out[table] = error ? { error: "unavailable" } : data;
   }
   return new NextResponse(JSON.stringify(out, null, 2), {
     headers: {
       "Content-Type": "application/json; charset=utf-8",
-      "Content-Disposition": `attachment; filename="mindflow-export-${new Date().toISOString().slice(0, 10)}.json"`,
+      "Content-Disposition": `attachment; filename="fca-ai-export-${new Date().toISOString().slice(0, 10)}.json"`,
       "Cache-Control": "no-store",
     },
   });

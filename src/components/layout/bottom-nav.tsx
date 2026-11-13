@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { SignOutForm } from "./sign-out-button";
 import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
@@ -8,7 +9,7 @@ import { LayoutGrid, LogOut, X } from "lucide-react";
 import { MOBILE_PRIMARY, NAV_ITEMS, isActive } from "./nav-config";
 import { cn } from "@/lib/utils/format";
 
-export function BottomNav() {
+export function BottomNav({ isGuest = false }: { isGuest?: boolean }) {
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
   const reduce = useReducedMotion();
@@ -44,7 +45,7 @@ export function BottomNav() {
                     active ? "text-accent" : "text-fg-2",
                   )}
                 >
-                  <Icon className={cn("size-[22px]", active && "drop-shadow-[0_0_8px_rgba(214,255,53,0.7)]")} aria-hidden="true" />
+                  <Icon className={cn("size-[22px]", active && "drop-shadow-[0_0_8px_rgba(255,235,59,0.7)]")} aria-hidden="true" />
                   {short}
                 </Link>
               </li>
@@ -117,15 +118,14 @@ export function BottomNav() {
                   </li>
                 ))}
                 <li>
-                  <form action="/auth/signout" method="post" className="h-full">
-                    <button
-                      type="submit"
-                      className="focus-ring glass flex h-24 w-full flex-col items-center justify-center gap-2 rounded-2xl text-xs font-medium text-fg-2"
-                    >
-                      <LogOut className="size-6" aria-hidden="true" />
-                      Sign out
-                    </button>
-                  </form>
+                  <SignOutForm
+                    guest={isGuest}
+                    className="h-full"
+                    buttonClassName="focus-ring glass flex h-24 w-full flex-col items-center justify-center gap-2 rounded-2xl text-xs font-medium text-fg-2"
+                  >
+                    <LogOut className="size-6" aria-hidden="true" />
+                    Sign out
+                  </SignOutForm>
                 </li>
               </ul>
             </motion.div>

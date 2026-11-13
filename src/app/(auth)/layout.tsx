@@ -19,7 +19,7 @@ export default function AuthLayout({ children }: LayoutProps<"/">) {
           </h2>
           <p className="mt-5 text-lg text-fg-2">Upload. Organise. Plan. Read. Practise. Improve.</p>
         </div>
-        <p className="relative text-sm text-muted">© {new Date().getFullYear()} MindFlow</p>
+        <p className="relative text-sm text-muted">© {new Date().getFullYear()} FCA-AI</p>
       </aside>
 
       <main id="main" className="relative flex items-center justify-center overflow-hidden px-4 py-10 sm:px-8">

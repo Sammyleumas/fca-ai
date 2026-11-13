@@ -6,10 +6,10 @@ const DOCS = {
   terms: {
     title: "Terms of Service",
     body: [
-      "MindFlow is a study tool. You keep ownership of everything you upload, and you are responsible for having the right to upload it.",
+      "FCA-AI is a study tool. You keep ownership of everything you upload, and you are responsible for having the right to upload it.",
       "AI-generated explanations, plans and questions can contain mistakes. Always check important facts against your original materials.",
-      "Do not use MindFlow to upload unlawful content or to attempt to access other students' data.",
-      "These terms are a placeholder for launch and must be reviewed by a qualified lawyer before MindFlow is offered commercially.",
+      "Do not use FCA-AI to upload unlawful content or to attempt to access other students' data.",
+      "These terms are a placeholder for launch and must be reviewed by a qualified lawyer before FCA-AI is offered commercially.",
     ],
   },
   privacy: {
@@ -18,7 +18,7 @@ const DOCS = {
       "Your materials are stored privately and are only accessible to your account. Download links are short-lived.",
       "Document text you choose to study with AI features is sent to our AI provider to generate responses. It is not used to show content to other users.",
       "You can export your data or permanently delete your account at any time from Settings.",
-      "This policy is a placeholder for launch and must be reviewed by a qualified lawyer before MindFlow is offered commercially.",
+      "This policy is a placeholder for launch and must be reviewed by a qualified lawyer before FCA-AI is offered commercially.",
     ],
   },
 } as const;

@@ -6,7 +6,7 @@ import type { ReaderHighlight, ReadingPrefs } from "@/lib/data/reader";
 import { cn } from "@/lib/utils/format";
 
 export const READER_THEMES = {
-  dark: { page: "bg-[#141615] text-[#e9ebe8]", label: "Dark" },
+  dark: { page: "bg-[#0D0D33] text-[#e9ebe8]", label: "Dark" },
   sepia: { page: "bg-[#f3ead7] text-[#3a2f20]", label: "Sepia" },
   light: { page: "bg-[#fbfbf9] text-[#1c1d1c]", label: "Light" },
 } as const;

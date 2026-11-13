@@ -73,6 +73,8 @@ export const profileSettingsSchema = z.object({
 
 export const learningSettingsSchema = z.object({
   daily_study_minutes: z.coerce.number().int().min(10).max(720),
+  weekly_goal_minutes: z.coerce.number().int().min(30, "At least 30 minutes a week.").max(5040),
+  weekly_goal_days: z.coerce.number().int().min(1).max(7),
   preferred_study_time: z.enum(STUDY_TIMES).nullable(),
   learning_goals: z.array(z.string().trim().min(1).max(120)).max(10),
 });

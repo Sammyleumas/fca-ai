@@ -1,4 +1,4 @@
--- MindFlow core schema
+-- FCA-AI core schema
 -- Schema version 1. Every user-owned table carries user_id and is protected by RLS
 -- (see 20261113000002_rls.sql). Child tables use composite foreign keys
 -- (parent_id, user_id) -> parent(id, user_id) so rows can never be attached to

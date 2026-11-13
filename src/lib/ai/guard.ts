@@ -23,7 +23,7 @@ export async function assertAIAllowed(userId: string, feature: AIFeature): Promi
   if (allowed === false) throw new AIError("rate_limited", "You're sending messages quickly. Please wait a moment.");
 
   if (feature === "tutor_chat" || feature === "explain") {
-    const { plan } = await getShellData(userId);
+    const { tier } = await getShellData(userId);
     const since = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
     const { count } = await supabase
       .from("ai_usage_events")
@@ -31,10 +31,10 @@ export async function assertAIAllowed(userId: string, feature: AIFeature): Promi
       .eq("user_id", userId)
       .in("feature", ["tutor_chat", "explain"])
       .gte("created_at", since);
-    if ((count ?? 0) >= limitsFor(plan).aiMessagesPerDay) {
+    if ((count ?? 0) >= limitsFor(tier).aiMessagesPerDay) {
       throw new AIError(
         "quota_exceeded",
-        `You've reached today's limit of ${limitsFor(plan).aiMessagesPerDay} AI messages on the ${limitsFor(plan).label} plan.`,
+        `You've reached today's limit of ${limitsFor(tier).aiMessagesPerDay} AI messages on the ${limitsFor(tier).label} plan.`,
       );
     }
   }

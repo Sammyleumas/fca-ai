@@ -1,4 +1,4 @@
--- MindFlow server-side functions
+-- FCA-AI server-side functions
 
 -- Materials: students may rename / organise / mark opened, but processing fields are
 -- owned by the processing pipeline.

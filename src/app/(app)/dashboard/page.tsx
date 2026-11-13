@@ -12,7 +12,7 @@ export default async function DashboardPage({ searchParams }: PageProps<"/dashbo
   const [data, shell, sp] = await Promise.all([getDashboardData(user.id), getShellData(user.id), searchParams]);
   const notice =
     sp.welcome === "1"
-      ? "Welcome to MindFlow! Start by uploading your learning materials."
+      ? "Welcome to FCA-AI! Start by uploading your learning materials."
       : sp.password === "updated"
         ? "Your password has been updated."
         : undefined;

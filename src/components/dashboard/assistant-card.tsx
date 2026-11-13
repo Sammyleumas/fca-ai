@@ -41,7 +41,7 @@ export function AssistantCard() {
           />
           <button
             type="submit"
-            className="focus-ring flex size-11 items-center justify-center rounded-full bg-accent text-[#0b0c0b] transition hover:bg-[#e2ff63]"
+            className="focus-ring flex size-11 items-center justify-center rounded-full bg-accent text-[#000000] transition hover:bg-[#e2ff63]"
             aria-label="Ask"
           >
             <SendHorizontal className="size-5" />

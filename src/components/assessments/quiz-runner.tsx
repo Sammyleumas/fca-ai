@@ -138,7 +138,7 @@ export function QuizRunner({
             aria-label={`Question ${i + 1}${answered(answers[x.id]) ? ", answered" : ""}`}
             className={cn(
               "focus-ring size-9 rounded-xl text-xs font-semibold transition",
-              i === index ? "bg-accent text-[#0b0c0b]" : answered(answers[x.id]) ? "border border-accent/50 bg-accent/10 text-accent" : "border border-line text-fg-2 hover:text-fg",
+              i === index ? "bg-accent text-[#000000]" : answered(answers[x.id]) ? "border border-accent/50 bg-accent/10 text-accent" : "border border-line text-fg-2 hover:text-fg",
             )}
           >
             {i + 1}
@@ -167,7 +167,7 @@ export function QuizRunner({
                       onClick={() => set({ option: i })}
                       className={cn("focus-ring flex w-full items-center gap-3 rounded-2xl border p-3.5 text-left text-sm transition", on ? "border-accent bg-accent/15 glow-accent" : "border-line bg-white/[0.03] hover:border-line-strong")}
                     >
-                      <span className={cn("flex size-6 shrink-0 items-center justify-center rounded-full border-2", on ? "border-accent bg-accent text-[#0b0c0b]" : "border-line-strong")}>
+                      <span className={cn("flex size-6 shrink-0 items-center justify-center rounded-full border-2", on ? "border-accent bg-accent text-[#000000]" : "border-line-strong")}>
                         {on && <Check className="size-3.5" strokeWidth={3} aria-hidden="true" />}
                       </span>
                       {o}

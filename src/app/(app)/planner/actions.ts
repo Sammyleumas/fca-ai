@@ -74,14 +74,14 @@ export async function createPlan(form: PlanInputForm): Promise<Result> {
   const input = parsed.data;
 
   const supabase = await createClient();
-  const { plan } = await getShellData(user.id);
+  const { tier } = await getShellData(user.id);
   const { count } = await supabase
     .from("study_plans")
     .select("id", { count: "exact", head: true })
     .eq("user_id", user.id)
     .eq("status", "active");
-  if ((count ?? 0) >= limitsFor(plan).activeStudyPlans) {
-    return { ok: false, error: `Your plan allows ${limitsFor(plan).activeStudyPlans} active study plans. Archive one first.` };
+  if ((count ?? 0) >= limitsFor(tier).activeStudyPlans) {
+    return { ok: false, error: `Your plan allows ${limitsFor(tier).activeStudyPlans} active study plans. Archive one first.` };
   }
 
   const computed = await computePlan(user.id, input);
@@ -103,7 +103,7 @@ export async function createPlan(form: PlanInputForm): Promise<Result> {
       preferred_time: input.preferredTime ?? null,
       workload: input.workload,
       material_ids: materials.map((m) => m.id),
-      meta: { engine: "mindflow-scheduler-v1", summary: result.summary, warnings: result.warnings },
+      meta: { engine: "fca-ai-scheduler-v1", summary: result.summary, warnings: result.warnings },
       sessions: result.sessions.map((s) => ({
         date: s.date,
         kind: s.kind,

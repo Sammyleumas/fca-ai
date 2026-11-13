@@ -1,8 +1,14 @@
-# MindFlow build phases
+# FCA-AI build phases
+
+> Renamed from MindFlow to **FCA-AI** with the FCA-AI palette (royal blue #0000A1, sky #00BFFF, yellow #FFEB3B, black, white) and the shield-and-rings logo.
+>
+> **Guest access:** "Continue as guest" on the welcome, sign-in and sign-up pages opens the full app without an account (Supabase anonymous sign-in). Guests see a banner to save their account (email link → choose a password) and keep all their work.
 
 Status legend: ✅ done & tested · 🟡 partial · ⏳ not started
 
-Current: **Phase 5 complete** · next: Phase 6 (Engagement).
+Current: **Phase 6 complete** · next: Phase 7 (Monetisation & launch).
+
+Repository: https://github.com/Sammyleumas/fca-ai (moved from `Ayo-food/fca-ai` with full history).
 
 ## Phase 1 — Foundation ✅
 
@@ -64,7 +70,7 @@ against your Supabase project before launch.
 | Plan creation | ✅ | Server recomputes the plan (client sessions are never trusted) and saves plan, materials, sessions and tasks in one transaction (`create_study_plan`). Plan limits per subscription. |
 | Daily progress | ✅ | Ticking off tasks records verified `task_completed` / `session_completed` activity → streaks, XP, achievements; sessions and plans complete automatically. Skip / restore tasks. |
 | Manual editing | ✅ | Move sessions to another day (warns past the deadline), skip tasks, archive / restore / delete plans. |
-| Adaptive rescheduling | ✅ | Missed study sessions are detected; MindFlow proposes a new schedule for every unfinished task from today, keeping order and realistic loads and the deadline whenever possible (otherwise it proposes the earliest later deadline). The student reviews and approves; the change is applied atomically (`apply_plan_reschedule`), refuses stale proposals, never moves completed work, and sends a "plan changed" notification. Nothing is overwritten silently. |
+| Adaptive rescheduling | ✅ | Missed study sessions are detected; FCA-AI proposes a new schedule for every unfinished task from today, keeping order and realistic loads and the deadline whenever possible (otherwise it proposes the earliest later deadline). The student reviews and approves; the change is applied atomically (`apply_plan_reschedule`), refuses stale proposals, never moves completed work, and sends a "plan changed" notification. Nothing is overwritten silently. |
 | Material-grounded AI tutor | ✅ | Postgres full-text search (`search_material_pages`, RLS-scoped) + the pages of the section being studied. Answers cite numbered sources; only citations of passages actually provided are kept and shown as "Material · p. N" chips. If the material doesn't cover the question, the tutor says so and labels general knowledge. General mode remains available; the student picks "Answer from" per conversation. Opened from a material or a study session with context. |
 | Dashboard | ✅ | Today's Mission and Upcoming Plan now come from real plans; links open the study session. |
 
@@ -109,9 +115,38 @@ against your Supabase project before launch.
 
 **Bugs found and fixed while testing:** "1,000" vs "1000" in fill-in marking; quiz drafts lost on refresh (effect ordering); a partial unique index that PostgREST upserts can't target; a PostgREST embed alias; mobile button layout.
 
-## Phase 6 — Engagement ⏳
-Scheduled reminders (time-zone aware), analytics pages, weekly goals & challenges, monthly reports.
+## Phase 6 — Engagement ✅
 
-## Phase 7 — Monetisation & launch ⏳
-Paystack + Stripe checkout and webhooks (server-side entitlement), security review, full E2E journey test,
-production deployment.
+| Area | Status | Notes |
+|---|---|---|
+| Analytics | ✅ | `analytics_summary()` (RLS-scoped) computes everything from stored activity: study time per day/week (7D / 30D / 3M / 1Y), change vs the previous period, active days & consistency, tasks/sessions/quizzes/flashcard reviews, quiz score trend, materials completed & overall progress, per-subject (or per-material) time and quiz average, weak topics aggregated from graded quiz topics, 12-week activity heatmap, current/longest streak. No demo data — empty states for new students. |
+| Charts | ✅ | Hand-built SVG following the data-viz spec: single series in brand lime (≥ 3:1 on the dark surface), thin columns with rounded data-ends, 2px line with ringed markers, recessive gridlines, selective labels, hover tooltips with large hit targets, "View as table" for every chart, sequential heatmap with legend. |
+| Personalised recommendations | ✅ | e.g. "You consistently perform well in Computer Networks (88%), but Databases (52%) requires more revision." Plus weak topics, mastered topics, study-time and score trends, consistency advice and a healthy-limits note for very long days. Every sentence is backed by numbers on the page. |
+| Weekly goals & challenges | ✅ | Weekly minutes and study-day goals (Settings → Learning), challenges for the goal, study days, 3 quizzes and 30 flashcard reviews. |
+| Milestones | ✅ | New achievements: Ten-Hour Scholar, Fifty-Hour Scholar, Card Shark (new criteria in `record_study_activity`). |
+| Monthly reports | ✅ | `/analytics/report?month=YYYY-MM`: study time, active days, tasks, sessions, quizzes & average, flashcard reviews, XP, achievements, daily chart, highlights; month navigation. |
+| Reminders | ✅ | `generate_user_notifications()` in each student's time zone, honouring their preferences: today's sessions (morning), unfinished tasks from missed sessions (per plan), daily study reminder at their chosen time (only if they haven't studied yet), daily quiz waiting (evening), gentle streak nudge (18:00–21:00, live streaks only), weekly goal reached, monthly report ready. Quiet hours 22:00–07:00. Each reminder has a de-duplication key so it fires once. Runs when the student opens the app (at most every 15 min) and from `/api/jobs/notifications` (cron). |
+| Email reminders | ✅ (Phase 7) | Delivered via Resend when configured. |
+
+**Tests added:** reminders (local-time threshold, de-duplication, quiet hours, opt-outs, already-studied, all reminder types, access control) and analytics aggregates/isolation (database); insights, subject grouping, trends, challenges (unit). Analytics screen checked in a real browser on desktop and mobile.
+
+**Bug found and fixed while testing:** a chart received a formatting function from a server component (not serialisable — the page would have failed in production).
+
+## Phase 7 — Monetisation & launch ✅ (code complete; live provider checks pending credentials)
+
+| Area | Status | Notes |
+|---|---|---|
+| Stripe | ✅ code / ⏳ live | Checkout Session (subscription), Customer Portal, webhook with HMAC-SHA256 signature + 5-min timestamp tolerance. Handles checkout completed, subscription created/updated/deleted, payment failed. |
+| Paystack | ✅ code / ⏳ live | Transaction initialize with plan, server-side verification on callback (the transaction must belong to the signed-in student), webhook with HMAC-SHA512. Handles charge.success, subscription create / not_renew / disable, payment failed; manage link for card updates & cancellation. |
+| Entitlement | ✅ | `effectivePlan()` — Premium while active/trialing, and until the paid period ends after cancellation or a failed payment. Every limit (materials, upload size, plans, AI messages, quizzes, flashcards) is enforced on the server from this. Students cannot write subscriptions (RLS + grants) or read provider ids/tokens (column grants). |
+| Webhook safety | ✅ | Ledger `billing_events (provider, event_id)` makes processing idempotent; older events never overwrite newer state (`last_event_at`); failures return 500 so the provider retries. |
+| Honesty | ✅ | No provider configured → "Payments aren't available yet"; the success page says "processing" until the webhook confirms. |
+| Account deletion | ✅ | Cancels the Stripe subscription / disables the Paystack subscription first; nothing is deleted if that fails. |
+| Email | ✅ | Resend REST; reminder emails (HTML-escaped, links only to the app), opt-in, one email per notification. Auth emails via Supabase SMTP (documented). |
+| Security | ✅ | Content-Security-Policy, HSTS, frame-ancestors none, no third-party scripts; review in `docs/SECURITY.md`. |
+| Operations | ✅ | `/api/health`, structured `onRequestError` logging, GitHub Actions CI (lint, types, unit + Postgres tests, build). |
+| E2E journey | ✅ script / ⏳ run | `npm run test:journey` walks 15 steps against a real deployment. Not yet run — needs a deployed instance with Supabase + AI keys. |
+
+**Tests added:** signature verification (valid, tampered, expired, wrong secret), event→subscription mapping for both providers, entitlement rules, email escaping and link safety (unit); provider secrets hidden from students, webhook ledger private and unique, email lookup service-only (database).
+
+**Not verifiable in this sandbox:** real Stripe/Paystack API calls and webhooks, Resend delivery, and the journey script — these need live keys. Use test-mode keys before going live.

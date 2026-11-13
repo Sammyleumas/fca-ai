@@ -63,7 +63,7 @@ export function OrganiseDialog({
             type="button"
             aria-selected={tab === t}
             onClick={() => setTab(t)}
-            className={cn("focus-ring h-9 rounded-full text-sm font-medium", tab === t ? "bg-accent text-[#0b0c0b]" : "text-fg-2 hover:text-fg")}
+            className={cn("focus-ring h-9 rounded-full text-sm font-medium", tab === t ? "bg-accent text-[#000000]" : "text-fg-2 hover:text-fg")}
           >
             {t === "subjects" ? "Subjects, courses & exams" : "Folders & collections"}
           </button>

@@ -52,7 +52,7 @@ export function SignupForm() {
         <input
           type="checkbox"
           name="terms"
-          className="mt-0.5 size-4 shrink-0 rounded accent-[#D6FF35]"
+          className="mt-0.5 size-4 shrink-0 rounded accent-[#FFEB3B]"
           aria-invalid={state.fields?.terms ? true : undefined}
         />
         <span>

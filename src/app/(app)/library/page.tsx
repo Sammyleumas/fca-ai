@@ -15,7 +15,7 @@ export default async function LibraryPage({ searchParams }: PageProps<"/library"
   const { user } = await requireOnboardedUser();
   const [sp, library, shell] = await Promise.all([searchParams, getLibrary(user.id), getShellData(user.id)]);
   const query = parseLibraryQuery(sp);
-  const limits = limitsFor(shell.plan);
+  const limits = limitsFor(shell.tier);
   return (
     <LibraryView
       items={applyLibraryQuery(library.items, query)}

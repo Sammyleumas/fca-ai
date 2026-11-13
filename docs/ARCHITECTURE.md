@@ -1,8 +1,8 @@
-# MindFlow — Architecture & Implementation Plan
+# FCA-AI — Architecture & Implementation Plan
 
 > Study Smarter. Achieve More.
 
-This document is the source of truth for how MindFlow is put together. It is
+This document is the source of truth for how FCA-AI is put together. It is
 kept up to date as each phase lands (see `docs/PHASES.md` for status).
 
 ## 1. Stack
@@ -22,7 +22,7 @@ kept up to date as each phase lands (see `docs/PHASES.md` for status).
 ## 2. Folder structure
 
 ```
-mindflow/
+fca-ai/   (repository root)
 ├─ docs/                     architecture, phases, deployment, design references
 ├─ supabase/
 │  ├─ migrations/            versioned SQL (schema, RLS, functions, storage, seed catalog)

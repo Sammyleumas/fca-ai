@@ -1,4 +1,4 @@
--- Minimal stand-in for the parts of Supabase that MindFlow's migrations depend on,
+-- Minimal stand-in for the parts of Supabase that FCA-AI's migrations depend on,
 -- so migrations and RLS policies can be tested against a plain Postgres 15+/16.
 -- Mirrors Supabase semantics: auth.uid() reads the `sub` claim from
 -- request.jwt.claims, and the anon / authenticated / service_role roles exist.
@@ -17,7 +17,17 @@ create table if not exists auth.users (
   id uuid primary key default gen_random_uuid(),
   email text unique,
   raw_user_meta_data jsonb not null default '{}'::jsonb,
+  is_anonymous boolean not null default false,
+  last_sign_in_at timestamptz,
   created_at timestamptz not null default now()
+);
+
+create table if not exists auth.sessions (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null references auth.users (id) on delete cascade,
+  created_at timestamptz default now(),
+  updated_at timestamptz default now(),
+  refreshed_at timestamp
 );
 
 create or replace function auth.uid() returns uuid language sql stable as $$

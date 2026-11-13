@@ -56,7 +56,7 @@ export default async function NotificationsPage() {
           {items.map((n) => (
             <li key={n.id}>
               <GlassCard as="article" className={cn("flex items-start gap-4 p-4", !n.read_at && "border-accent/30")}>
-                <span className={cn("mt-1.5 size-2.5 shrink-0 rounded-full", n.read_at ? "bg-white/15" : "bg-accent shadow-[0_0_8px_rgba(214,255,53,0.8)]")} aria-hidden="true" />
+                <span className={cn("mt-1.5 size-2.5 shrink-0 rounded-full", n.read_at ? "bg-white/15" : "bg-accent shadow-[0_0_8px_rgba(255,235,59,0.8)]")} aria-hidden="true" />
                 <div className="min-w-0 flex-1">
                   <h2 className="font-semibold">{n.link ? <Link href={n.link} className="hover:underline">{n.title}</Link> : n.title}</h2>
                   {n.body && <p className="mt-0.5 text-sm text-fg-2">{n.body}</p>}

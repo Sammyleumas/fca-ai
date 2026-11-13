@@ -32,7 +32,7 @@ export default async function PlannerPage({ searchParams }: PageProps<"/planner"
           <EmptyState
             icon={<CalendarDays className="size-6" />}
             title="No study plans yet"
-            description="Pick one material for an individual plan, or several for one combined timetable. MindFlow schedules every section around your deadline and daily time."
+            description="Pick one material for an individual plan, or several for one combined timetable. FCA-AI schedules every section around your deadline and daily time."
             action={<ButtonLink href="/planner/new" size="sm">Create your first plan</ButtonLink>}
           />
         </GlassCard>

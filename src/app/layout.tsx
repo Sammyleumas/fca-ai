@@ -5,14 +5,14 @@ import "./globals.css";
 const inter = Inter({ variable: "--font-inter", subsets: ["latin"], display: "swap" });
 
 export const metadata: Metadata = {
-  title: { default: "MindFlow — Study Smarter. Achieve More.", template: "%s · MindFlow" },
+  title: { default: "FCA-AI — Study Smarter. Achieve More.", template: "%s · FCA-AI" },
   description:
-    "MindFlow turns your study materials into structured, personalised learning: AI study plans, a focused reading room, daily quizzes and progress you can see.",
-  applicationName: "MindFlow",
+    "FCA-AI turns your study materials into structured, personalised learning: AI study plans, a focused reading room, daily quizzes and progress you can see.",
+  applicationName: "FCA-AI",
 };
 
 export const viewport: Viewport = {
-  themeColor: "#080909",
+  themeColor: "#03031A",
   colorScheme: "dark",
   width: "device-width",
   initialScale: 1,

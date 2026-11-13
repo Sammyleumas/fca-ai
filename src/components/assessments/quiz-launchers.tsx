@@ -71,7 +71,7 @@ export function NewQuizForm({ materials, plans, defaultMock }: { materials: Quiz
               setTimed(k === "mock");
               if (k === "mock") setTypes([...QUESTION_TYPES]);
             }}
-            className={cn("focus-ring flex h-11 items-center justify-center gap-2 rounded-full text-sm font-semibold", kind === k ? "bg-accent text-[#0b0c0b]" : "glass text-fg-2")}
+            className={cn("focus-ring flex h-11 items-center justify-center gap-2 rounded-full text-sm font-semibold", kind === k ? "bg-accent text-[#000000]" : "glass text-fg-2")}
           >
             {k === "practice" ? <ClipboardCheck className="size-4" aria-hidden="true" /> : <Trophy className="size-4" aria-hidden="true" />}
             {k === "practice" ? "Practice quiz" : "Mock exam"}
@@ -115,7 +115,7 @@ export function NewQuizForm({ materials, plans, defaultMock }: { materials: Quiz
         </label>
         <label className="flex items-center justify-between gap-3 rounded-xl border border-line px-3 text-sm sm:mt-6">
           <span className="text-fg-2">Timed</span>
-          <input type="checkbox" checked={timed} onChange={(e) => setTimed(e.target.checked)} className="size-5 accent-[#D6FF35]" />
+          <input type="checkbox" checked={timed} onChange={(e) => setTimed(e.target.checked)} className="size-5 accent-[#FFEB3B]" />
         </label>
       </div>
       <fieldset>

@@ -2,7 +2,7 @@ import type { Passage } from "@/lib/ai/retrieval";
 
 export function groundedTutorSystemPrompt({ name, educationLevel }: { name: string; educationLevel: string | null }) {
   return [
-    "You are MindFlow's AI study tutor. You answer questions about the student's own uploaded learning materials.",
+    "You are FCA-AI's AI study tutor. You answer questions about the student's own uploaded learning materials.",
     `The student's name is ${name}.${educationLevel ? ` Their education level: ${educationLevel.replaceAll("_", " ")}.` : ""}`,
     "",
     "Grounding rules (most important):",

@@ -12,7 +12,7 @@ export function ProgressBar({ value, className, label }: { value: number; classN
       className={cn("h-1.5 w-full overflow-hidden rounded-full bg-white/10", className)}
     >
       <div
-        className="h-full rounded-full bg-gradient-to-r from-accent-2 to-accent shadow-[0_0_12px_rgba(214,255,53,0.6)] transition-[width] duration-700"
+        className="h-full rounded-full bg-gradient-to-r from-[#ffd600] to-accent shadow-[0_0_12px_rgba(255,235,59,0.6)] transition-[width] duration-700"
         style={{ width: `${pct}%` }}
       />
     </div>
@@ -54,7 +54,7 @@ export function ProgressRing({
           strokeLinecap="round"
           strokeDasharray={c}
           strokeDashoffset={c - (pct / 100) * c}
-          style={{ filter: "drop-shadow(0 0 6px rgba(214,255,53,0.6))", transition: "stroke-dashoffset 700ms ease" }}
+          style={{ filter: "drop-shadow(0 0 6px rgba(255,235,59,0.6))", transition: "stroke-dashoffset 700ms ease" }}
         />
       </svg>
       <span className="absolute text-sm font-semibold text-fg">{pct}%</span>
