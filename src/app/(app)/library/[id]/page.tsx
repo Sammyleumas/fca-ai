@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { z } from "zod";
-import { AlertTriangle, ArrowLeft, BookOpenText, CalendarDays, Clock, FileText, Info, ListTree, Loader2 } from "lucide-react";
+import { Sparkles, AlertTriangle, ArrowLeft, BookOpenText, CalendarDays, Clock, FileText, Info, ListTree, Loader2 } from "lucide-react";
 import { MaterialActions } from "@/components/library/material-actions";
 import { StatusPoller } from "@/components/library/status-poller";
 import { FormMessage, EmptyState } from "@/components/ui/feedback";
@@ -14,6 +14,7 @@ import { limitsFor } from "@/lib/billing/plans";
 import { getLibrary, getMaterialDetail } from "@/lib/data/library";
 import { getShellData } from "@/lib/data/shell";
 import { isProcessing } from "@/lib/materials/library-filter";
+import { isAIConfigured } from "@/lib/ai";
 import { clampPercent, formatBytes, formatMinutes } from "@/lib/utils/format";
 
 export const metadata: Metadata = { title: "Material" };
@@ -38,8 +39,31 @@ export default async function MaterialPage({ params }: PageProps<"/library/[id]"
 
   const processing = isProcessing(m.status);
   const chapters = m.sections.filter((s) => s.level === 1).sort((a, b) => a.position - b.position);
-  const subs = (parent: string) => m.sections.filter((s) => s.parent_id === parent).sort((a, b) => a.position - b.position);
+  const subs = (parent: string) => m.sections.filter((s) => s.parent_id === parent).sort((a, b) => a.start_page - b.start_page || a.position - b.position);
   const totalMinutes = chapters.reduce((n, c) => n + (c.estimated_minutes ?? 0), 0);
+  const unitCount = m.sections.filter((s) => s.level === 3).length;
+  const pageLabel = (s: { start_page: number; end_page: number }) => `${m.pages_are_estimated ? "~" : ""}p. ${s.start_page}${s.end_page !== s.start_page ? `–${s.end_page}` : ""}`;
+  const UnitList = ({ parent }: { parent: string }) =>
+    subs(parent).length ? (
+      <ol className="mt-2 space-y-1.5 border-l border-line pl-3">
+        {subs(parent).map((s) => (
+          <li key={s.id} className="text-sm">
+            <div className="flex items-start justify-between gap-3">
+              <span className={s.level === 3 ? "text-fg/90" : "font-medium text-fg-2"}>
+                {s.title}
+                {s.level === 3 && s.complexity ? <span className="ml-2 text-[11px] text-muted">{"●".repeat(s.complexity)}<span className="sr-only"> complexity {s.complexity} of 5</span></span> : null}
+              </span>
+              <span className="shrink-0 text-xs text-fg-2">
+                {pageLabel(s)}
+                {s.level === 3 && s.estimated_minutes ? ` · ${formatMinutes(s.estimated_minutes)}` : ""}
+              </span>
+            </div>
+            {s.summary && <p className="mt-0.5 text-xs text-muted">{s.summary}</p>}
+            {s.level < 3 && <UnitList parent={s.id} />}
+          </li>
+        ))}
+      </ol>
+    ) : null;
   const dateFmt = new Intl.DateTimeFormat("en-GB", { dateStyle: "medium", timeZone: profile.timezone });
   const pages = m.page_count ? `${m.pages_are_estimated ? "~" : ""}${m.page_count}` : "—";
 
@@ -76,7 +100,8 @@ export default async function MaterialPage({ params }: PageProps<"/library/[id]"
           </div>
         </div>
         <MaterialActions
-          material={{ id: m.id, title: m.title, status: m.status, subjectId: m.subject?.id ?? null, folderId: m.folder?.id ?? null }}
+          material={{ id: m.id, title: m.title, status: m.status, subjectId: m.subject?.id ?? null, folderId: m.folder?.id ?? null, analysed: unitCount > 0 }}
+          aiEnabled={isAIConfigured()}
           subjects={library.subjects}
           folders={library.folders}
           maxBytes={limitsFor(shell.plan).maxUploadBytes}
@@ -102,27 +127,16 @@ export default async function MaterialPage({ params }: PageProps<"/library/[id]"
 
       <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
         <GlassCard className="p-5 sm:p-6">
-          <CardHeader icon={<ListTree className="size-5" />} title="Structure" action={totalMinutes > 0 && <span className="flex items-center gap-1 text-xs text-fg-2"><Clock className="size-3.5" aria-hidden="true" /> ~{formatMinutes(totalMinutes)} reading</span>} />
+          <CardHeader icon={<ListTree className="size-5" />} title="Structure" action={totalMinutes > 0 && <span className="flex items-center gap-1 text-xs text-fg-2"><Clock className="size-3.5" aria-hidden="true" /> ~{formatMinutes(totalMinutes)} reading{unitCount ? ` · ${unitCount} units` : ""}</span>} />
           {chapters.length ? (
             <ol className="mt-4 space-y-2">
               {chapters.map((c) => (
                 <li key={c.id} className="rounded-2xl border border-line bg-white/[0.03] p-3">
                   <div className="flex items-start justify-between gap-3">
                     <p className="font-medium">{c.title}</p>
-                    <span className="shrink-0 text-xs text-fg-2">
-                      {m.pages_are_estimated ? "~" : ""}p. {c.start_page}–{c.end_page}
-                    </span>
+                    <span className="shrink-0 text-xs text-fg-2">{pageLabel(c)}</span>
                   </div>
-                  {subs(c.id).length > 0 && (
-                    <ol className="mt-2 space-y-1 border-l border-line pl-3">
-                      {subs(c.id).map((s) => (
-                        <li key={s.id} className="flex items-start justify-between gap-3 text-sm text-fg-2">
-                          <span>{s.title}</span>
-                          <span className="shrink-0 text-xs">p. {s.start_page}–{s.end_page}</span>
-                        </li>
-                      ))}
-                    </ol>
-                  )}
+                  <UnitList parent={c.id} />
                 </li>
               ))}
             </ol>
@@ -130,7 +144,7 @@ export default async function MaterialPage({ params }: PageProps<"/library/[id]"
             <EmptyState
               icon={<ListTree className="size-6" />}
               title={m.status === "ready" ? "No chapters detected" : "Structure appears after processing"}
-              description={m.status === "ready" ? "AI segmentation into chapters and learning units arrives in the next build phase." : undefined}
+              description={m.status === "ready" ? "Use “Analyse with AI” to divide this material into learning units." : undefined}
               className="py-6"
             />
           )}
@@ -169,6 +183,9 @@ export default async function MaterialPage({ params }: PageProps<"/library/[id]"
             {m.plans.length ? `In plan: ${m.plans.map((p) => p.title).join(", ")}` : "Not in a study plan yet."}
           </p>
         </div>
+        <Link href={`/tutor?material=${m.id}`} className="focus-ring glass inline-flex h-11 items-center gap-2 rounded-full px-5 text-sm font-semibold hover:bg-white/10">
+          <Sparkles className="size-4" aria-hidden="true" /> Ask AI about it
+        </Link>
         <Link href={`/planner/new?materials=${m.id}`} className="focus-ring glass inline-flex h-11 items-center gap-2 rounded-full px-5 text-sm font-semibold hover:bg-white/10">
           <CalendarDays className="size-4" aria-hidden="true" /> Create study plan
         </Link>

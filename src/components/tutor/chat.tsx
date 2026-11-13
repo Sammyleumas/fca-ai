@@ -1,12 +1,15 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { Bot, Info, Loader2, SendHorizontal, Sparkles } from "lucide-react";
+import Link from "next/link";
+import { BookOpenText, Bot, Info, Loader2, SendHorizontal, Sparkles } from "lucide-react";
 import { FormMessage } from "@/components/ui/feedback";
 import { cn } from "@/lib/utils/format";
 import { RichText } from "./rich-text";
 
-export type UIMessage = { id: string; role: "user" | "assistant"; content: string };
+export type UICitation = { n: number; materialId: string; materialTitle: string; page: number };
+export type UIMessage = { id: string; role: "user" | "assistant"; content: string; citations?: UICitation[] };
+export type TutorContext = { materialId: string; materialTitle: string; sectionId?: string | null; sectionTitle?: string | null } | null;
 
 const SUGGESTIONS = [
   "Explain this topic simply: how does TCP differ from UDP?",
@@ -16,17 +19,20 @@ const SUGGESTIONS = [
 ];
 
 const ERROR_MARK = /\n*\[\[error:([^\]]*)\]\]\s*$/;
+const CITATION_MARK = /\n*\[\[citations:(\[.*\])\]\]\s*$/;
 
 export function TutorChat({
   conversationId: initialId,
   initialMessages,
   initialQuestion,
   name,
+  context = null,
 }: {
   conversationId?: string;
   initialMessages: UIMessage[];
   initialQuestion?: string;
   name: string;
+  context?: TutorContext;
 }) {
   const [conversationId, setConversationId] = useState(initialId);
   const [messages, setMessages] = useState<UIMessage[]>(initialMessages);
@@ -54,7 +60,11 @@ export function TutorChat({
       const res = await fetch("/api/ai/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ conversationId, message: content }),
+        body: JSON.stringify({
+          conversationId,
+          message: content,
+          ...(!conversationId && context ? { materialId: context.materialId, sectionId: context.sectionId ?? undefined } : {}),
+        }),
       });
       if (!res.ok || !res.body) {
         const data = (await res.json().catch(() => ({}))) as { error?: string };
@@ -72,8 +82,17 @@ export function TutorChat({
         const { value, done } = await reader.read();
         if (done) break;
         acc += decoder.decode(value, { stream: true });
-        const shown = acc.replace(ERROR_MARK, "");
+        const shown = acc.replace(ERROR_MARK, "").replace(CITATION_MARK, "").replace(/\n\[\[citations:[^\n]*$/, "");
         setMessages((m) => m.map((x) => (x.id === replyId ? { ...x, content: shown } : x)));
+      }
+      const cites = acc.match(CITATION_MARK);
+      if (cites) {
+        try {
+          const citations = JSON.parse(cites[1]) as UICitation[];
+          setMessages((m) => m.map((x) => (x.id === replyId ? { ...x, citations } : x)));
+        } catch {
+          // ignore malformed citation payloads
+        }
       }
       const err = acc.match(ERROR_MARK);
       if (err) throw new Error(err[1]);
@@ -104,7 +123,9 @@ export function TutorChat({
             </span>
             <div className="glass mt-6 rounded-2xl px-5 py-4">
               <p className="font-semibold">Hello {name}!</p>
-              <p className="text-sm text-fg-2">Ask me anything about your studies.</p>
+              <p className="text-sm text-fg-2">
+                {context ? `Ask me anything about “${context.sectionTitle ?? context.materialTitle}”.` : "Ask me anything about your studies."}
+              </p>
             </div>
             <ul className="mt-6 grid w-full max-w-xl gap-2 sm:grid-cols-2">
               {SUGGESTIONS.map((s) => (
@@ -132,10 +153,27 @@ export function TutorChat({
                 {m.role === "assistant" ? (
                   <>
                     <p className="mb-1.5 flex items-center gap-1.5 text-[11px] font-medium uppercase tracking-wide text-accent/90">
-                      <Sparkles className="size-3" aria-hidden="true" /> AI tutor · general knowledge
+                      <Sparkles className="size-3" aria-hidden="true" /> {context ? "AI tutor · from your materials" : "AI tutor · general knowledge"}
                     </p>
                     {m.content ? (
-                      <RichText text={m.content} />
+                      <>
+                        <RichText text={m.content} />
+                        {m.citations && m.citations.length > 0 && (
+                          <ul className="mt-3 flex flex-wrap gap-1.5 border-t border-line pt-3" aria-label="Sources">
+                            {m.citations.map((c) => (
+                              <li key={c.n}>
+                                <Link
+                                  href={`/library/${c.materialId}`}
+                                  className="focus-ring inline-flex items-center gap-1.5 rounded-full border border-accent/30 bg-accent/10 px-2.5 py-1 text-[11px] text-fg hover:border-accent/60"
+                                >
+                                  <BookOpenText className="size-3 text-accent" aria-hidden="true" />
+                                  <span className="font-semibold text-accent">{c.n}</span> {c.materialTitle} · p. {c.page}
+                                </Link>
+                              </li>
+                            ))}
+                          </ul>
+                        )}
+                      </>
                     ) : (
                       <span className="flex items-center gap-2 text-fg-2">
                         <Loader2 className="size-4 animate-spin" aria-hidden="true" /> Thinking…
@@ -155,7 +193,10 @@ export function TutorChat({
       <div className="sticky bottom-24 space-y-2 md:bottom-4">
         {error && <FormMessage>{error}</FormMessage>}
         <p className="flex items-center gap-1.5 px-2 text-xs text-muted">
-          <Info className="size-3.5" aria-hidden="true" /> AI can make mistakes. Answers here aren&apos;t based on your uploaded materials.
+          <Info className="size-3.5" aria-hidden="true" />
+          {context
+            ? `Answers are based on “${context.materialTitle}” with page references. AI can make mistakes — check the source pages.`
+            : "AI can make mistakes. Answers here aren't based on your uploaded materials."}
         </p>
         <form
           onSubmit={(e) => {

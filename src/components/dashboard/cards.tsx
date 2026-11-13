@@ -186,11 +186,11 @@ export function MissionCard({
               {next.estimated_minutes ? ` · ${formatMinutes(next.estimated_minutes)}` : ""}
             </p>
             <ButtonLink
-              href={next.material ? `/reader/${next.material.id}?task=${next.id}` : "/planner"}
+              href={`/planner/sessions/${next.sessionId}`}
               size="sm"
               className="mt-3"
             >
-              Continue Reading <Play className="size-3.5 fill-current" aria-hidden="true" />
+              Start session <Play className="size-3.5 fill-current" aria-hidden="true" />
             </ButtonLink>
           </div>
           <ProgressRing value={next.materialProgress} size={76} label={`${clampPercent(next.materialProgress)}% of this material read`} />

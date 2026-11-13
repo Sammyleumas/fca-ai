@@ -159,6 +159,18 @@ processPendingJobs (after-upload hook · status polling · cron)
 unit-tested end to end with an in-memory store. `supabase-store.ts` is the production implementation
 (service role, used only by the worker).
 
-## 7. Phases
+## 7. AI analysis, planning & grounding (Phase 3)
+
+```
+structure ─▶ analyse (AI, per page-bounded window) ─▶ units (document_sections level 3, source = ai)
+units + availability ─▶ buildPlan() (deterministic) ─▶ create_study_plan() (one transaction)
+missed sessions ─▶ proposeReschedule() ─▶ student approves ─▶ apply_plan_reschedule() (one transaction)
+question ─▶ section pages + search_material_pages() ─▶ numbered <source> blocks ─▶ answer with [n] citations
+```
+
+The AI decides *what the learning units are*; deterministic code decides *when they are studied*. This keeps plans
+explainable and reproducible, and guarantees page references always exist.
+
+## 8. Phases
 
 See `docs/PHASES.md` for the detailed checklist and current status.

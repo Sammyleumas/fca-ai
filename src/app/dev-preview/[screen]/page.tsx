@@ -4,6 +4,10 @@ import { DashboardView } from "@/components/dashboard/dashboard-view";
 import { TutorChat } from "@/components/tutor/chat";
 import { TutorLayout } from "@/components/tutor/tutor-layout";
 import { LibraryView } from "@/components/library/library-view";
+import { PlanWizard } from "@/components/planner/plan-wizard";
+import { PlanTimeline } from "@/components/planner/plan-timeline";
+import { buildPlan } from "@/lib/planner/scheduler";
+import type { PlanDetail } from "@/lib/data/planner";
 import { applyLibraryQuery, filterCounts, parseLibraryQuery, type LibraryItem } from "@/lib/materials/library-filter";
 import type { DashboardData } from "@/lib/data/dashboard";
 import { addDaysISO, lastNDates, localDateISO } from "@/lib/utils/dates";
@@ -42,8 +46,8 @@ function sample(empty: boolean): DashboardData {
       streak: { current_streak: 7, longest_streak: 9, last_qualifying_date: today }, xp: 1240,
     },
     mission: [
-      { id: "t1", title: "Read", status: "completed", start_page: 1, end_page: 10, estimated_minutes: 20, material: { id: "m1", title: "Introduction to Computer Science", file_type: "pdf" }, materialProgress: 68 },
-      { id: "t2", title: "Read", status: "pending", start_page: 11, end_page: 22, estimated_minutes: 30, material: { id: "m1", title: "Introduction to Computer Science", file_type: "pdf" }, materialProgress: 68 },
+      { id: "t1", sessionId: "s0", title: "Read", status: "completed", start_page: 1, end_page: 10, estimated_minutes: 20, material: { id: "m1", title: "Introduction to Computer Science", file_type: "pdf" }, materialProgress: 68 },
+      { id: "t2", sessionId: "s0", title: "Read", status: "pending", start_page: 11, end_page: 22, estimated_minutes: 30, material: { id: "m1", title: "Introduction to Computer Science", file_type: "pdf" }, materialProgress: 68 },
     ],
     upcoming: [
       { id: "s1", title: "Study: Computer Networks", scheduled_date: addDaysISO(today, 1), planned_minutes: 45, kind: "study", taskCount: 2 },
@@ -80,6 +84,31 @@ function libraryItems(): LibraryItem[] {
   ];
 }
 
+function samplePlan(): PlanDetail {
+  const today = localDateISO("UTC");
+  const titles = ["Introduction to CS", "Computer Networks", "TCP vs UDP", "Database Systems", "Normalisation", "Maths Revision", "Algorithms", "Complexity"];
+  const r = buildPlan({
+    materials: [{
+      id: "m1", title: "Introduction to Computer Science",
+      units: titles.map((t, i) => ({ sectionId: `u${i}`, materialId: "m1", materialTitle: "Intro to CS", chapterTitle: t, title: t, startPage: i * 22 + 1, endPage: i * 22 + 22, minutes: 35, complexity: 3, objectives: [`Explain ${t}`] })),
+    }],
+    startDate: addDaysISO(today, -1), deadline: addDaysISO(today, 12), dailyMinutes: 60, studyDays: [0, 1, 2, 3, 4, 5, 6], workload: "balanced",
+  });
+  let n = 0;
+  return {
+    id: "p1", title: "Intro to CS — exam prep", mode: "individual", status: "active", start_date: addDaysISO(today, -1), deadline: addDaysISO(today, 12),
+    daily_minutes: 60, study_days: [0, 1, 2, 3, 4, 5, 6], workload: "balanced", version: 1, materials: [{ id: "m1", title: "Introduction to Computer Science" }],
+    sessions: r.sessions.map((s, i) => ({
+      id: `s${i}`, scheduled_date: s.date, planned_minutes: s.minutes, kind: s.kind, title: s.title, objectives: s.objectives,
+      status: s.date < today ? "completed" : "scheduled",
+      tasks: s.tasks.map((t) => ({
+        id: `t${n++}`, session_id: `s${i}`, title: t.title, status: s.date < today ? "completed" : "pending", start_page: t.startPage, end_page: t.endPage,
+        estimated_minutes: t.minutes, material_id: t.materialId, section_id: t.sectionId, materialTitle: "Intro to CS",
+      })),
+    })),
+  };
+}
+
 export default async function DevPreview({ params }: PageProps<"/dev-preview/[screen]">) {
   if (process.env.NODE_ENV !== "development") notFound();
   const { screen } = await params;
@@ -99,6 +128,25 @@ export default async function DevPreview({ params }: PageProps<"/dev-preview/[sc
         uploadOpen={screen === "library-upload"}
         uploadsEnabled
       />
+    ) : screen === "plan" ? (
+      <div className="mx-auto max-w-4xl space-y-5">
+        <h1 className="text-2xl font-semibold tracking-tight">Intro to CS — exam prep</h1>
+        <PlanTimeline plan={samplePlan()} today={localDateISO("UTC")} />
+      </div>
+    ) : screen === "planner-new" ? (
+      <div className="mx-auto max-w-6xl space-y-5">
+        <h1 className="text-3xl font-semibold tracking-tight">New study plan</h1>
+        <PlanWizard
+          materials={[
+            { id: "m1", title: "Introduction to Computer Science", file_type: "pdf", page_count: 300, subject: "Computer Science", unitCount: 48, analysed: true },
+            { id: "m2", title: "Database Management Systems", file_type: "pdf", page_count: 180, subject: null, unitCount: 12, analysed: false },
+            { id: "m3", title: "Software Engineering Notes", file_type: "docx", page_count: 95, subject: null, unitCount: 0, analysed: false },
+          ]}
+          preselected={["m1", "m2"]}
+          today={localDateISO("UTC")}
+          defaultDailyMinutes={60}
+        />
+      </div>
     ) : screen === "tutor" ? (
       <TutorLayout conversations={[{ id: "c1", title: "How does TCP differ from UDP?", updated_at: "" }]}>
         <TutorChat

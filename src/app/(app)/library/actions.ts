@@ -261,6 +261,37 @@ export async function retryProcessing(materialId: string): Promise<Result> {
   return { ok: true };
 }
 
+/** Re-runs AI analysis (learning units) for a ready material, e.g. one processed before AI was enabled. */
+export async function analyseMaterial(materialId: string): Promise<Result> {
+  const user = await requireUser();
+  if (!uuid.safeParse(materialId).success) return { ok: false, error: "Invalid request." };
+  const material = await ownedMaterial(materialId);
+  if (!material) return { ok: false, error: "Material not found." };
+  if (material.status !== "ready") return { ok: false, error: "Wait until this material is ready." };
+  const { isAIConfigured } = await import("@/lib/ai");
+  if (!isAIConfigured()) return { ok: false, error: "AI analysis isn't configured on this server yet." };
+  const supabase = await createClient();
+  const { data: allowed } = await supabase.rpc("check_rate_limit", { p_key: "analyse", p_limit: 10, p_window_seconds: 3600 });
+  if (allowed === false) return { ok: false, error: "Please wait a while before analysing again." };
+  const admin = createAdminClient();
+  const { error } = await admin.from("document_processing_jobs").insert({
+    material_id: materialId,
+    user_id: user.id,
+    status: "queued",
+    stage: "analysing",
+    state: { step: "analyse" },
+  });
+  if (error) return { ok: false, error: "This material is already being processed." };
+  await admin
+    .from("materials")
+    .update({ status: "analysing", status_detail: "Analysing topics and learning units…", processing_progress: 60 })
+    .eq("id", materialId);
+  kickProcessing(user.id);
+  revalidateLibrary();
+  revalidatePath(`/library/${materialId}`);
+  return { ok: true };
+}
+
 /* --------------------------------------------------------- organise / delete */
 
 export async function deleteMaterials(ids: string[]): Promise<Result<{ deleted: number }>> {

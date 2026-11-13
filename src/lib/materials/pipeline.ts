@@ -3,6 +3,13 @@ import type { MaterialFileType, MaterialStatus } from "@/types/db";
 import { extract, ExtractionError, countWords, type HeadingCandidate } from "./extract";
 import { sniffFileType } from "./file-types";
 import { buildSections, type SectionDraft } from "./structure";
+import {
+  normaliseUnits,
+  planWindows,
+  type AnalysisWindow,
+  type LeafSection,
+  type SegmentationService,
+} from "./segmentation";
 
 /**
  * Resumable document-processing state machine.
@@ -17,7 +24,12 @@ import { buildSections, type SectionDraft } from "./structure";
  */
 
 export type JobState = {
-  step?: "extract" | "ocr" | "structure";
+  step?: "extract" | "ocr" | "structure" | "analyse";
+  windows?: AnalysisWindow[];
+  analyseTotal?: number;
+  analyseDone?: number;
+  analyseFailed?: number;
+  unitsCreated?: number;
   headings?: HeadingCandidate[];
   headingSource?: "outline" | "inferred" | "none";
   pageCount?: number;
@@ -81,7 +93,13 @@ export interface ProcessingStore {
   replacePages(materialId: string, userId: string, pages: PageWrite[]): Promise<void>;
   updatePages(materialId: string, pages: PageWrite[]): Promise<void>;
   pageWordCounts(materialId: string): Promise<Map<number, number>>;
+  pageCharCounts(materialId: string): Promise<Map<number, number>>;
+  getPages(materialId: string, from: number, to: number): Promise<{ page: number; text: string }[]>;
   replaceSections(materialId: string, userId: string, sections: SectionDraft[]): Promise<void>;
+  /** Leaf sections (no children) in reading order, with their chapter title. */
+  listLeafSections(materialId: string): Promise<LeafSection[]>;
+  deleteAiSections(materialId: string): Promise<void>;
+  insertAiSections(materialId: string, userId: string, rows: AiSectionRow[]): Promise<void>;
   updateJob(id: string, patch: JobPatch): Promise<void>;
   notify(userId: string, n: { kind: "processing"; title: string; body: string; link: string }): Promise<void>;
 }
@@ -90,6 +108,21 @@ export interface ProcessingStore {
 export interface OcrService {
   transcribe(pdf: Uint8Array, pageCount: number): Promise<string[]>;
 }
+
+export type AiSectionRow = {
+  id: string;
+  parent_id: string | null;
+  level: 1 | 3;
+  position: number;
+  title: string;
+  summary: string | null;
+  start_page: number;
+  end_page: number;
+  estimated_minutes: number;
+  complexity: number | null;
+  learning_objectives: string[];
+  key_concepts: string[];
+};
 
 export class RetryLaterError extends Error {
   constructor(public readonly delaySeconds: number, message: string) {
@@ -111,7 +144,8 @@ export async function slicePdf(bytes: Uint8Array, pages: number[]): Promise<Uint
 }
 
 function progressFor(state: JobState): number {
-  if (state.step === "structure") return 90;
+  if (state.step === "analyse" && state.analyseTotal) return 60 + Math.round(((state.analyseDone ?? 0) / state.analyseTotal) * 38);
+  if (state.step === "structure") return 55;
   if (state.step === "ocr" && state.ocrTotal) return 40 + Math.round(((state.ocrDone ?? 0) / state.ocrTotal) * 45);
   return 10;
 }
@@ -119,7 +153,7 @@ function progressFor(state: JobState): number {
 export async function runJob(
   job: ProcessingJob,
   store: ProcessingStore,
-  deps: { ocr: OcrService | null; deadline: number; now?: () => number },
+  deps: { ocr: OcrService | null; segmenter?: SegmentationService | null; deadline: number; now?: () => number },
 ): Promise<StepOutcome> {
   const now = deps.now ?? Date.now;
   const state: JobState = { step: "extract", ...job.state };
@@ -226,44 +260,126 @@ export async function runJob(
       const sections = buildSections(state.headings ?? [], pageCount, (p) => words.get(p) ?? 0);
       await store.replaceSections(material.id, material.user_id, sections);
       const totalWords = [...words.values()].reduce((a, b) => a + b, 0);
+      state.wordCount = totalWords || state.wordCount || 0;
+      if (deps.segmenter && totalWords > 0) {
+        state.step = "analyse";
+        await save("analysing", "Analysing topics and learning units…");
+        if (now() >= deps.deadline) return yieldJob(job, store);
+      } else {
+        return finish(job, material, store, state);
+      }
+    }
 
-      const unreadable = (state.ocrFailed?.length ?? 0) + (state.scannedWithoutOcr ?? 0);
-      const warnings: string[] = [];
-      if (unreadable) warnings.push(`${unreadable} page${unreadable === 1 ? "" : "s"} contain no readable text (scanned images we couldn't transcribe).`);
-      if (!sections.length) warnings.push("No chapter headings were detected. AI structuring (coming next) will divide this material into study sections.");
-      if (state.pagesAreEstimated) warnings.push("Page numbers are estimated because this format has no fixed pages.");
-
-      await store.updateMaterial(material.id, {
-        status: "ready",
-        status_detail: null,
-        processing_progress: 100,
-        processing_error: null,
-        processing_warning: warnings.join(" ") || null,
-        word_count: totalWords || state.wordCount || 0,
-        ocr_page_count: (state.ocrDone ?? 0) - (state.ocrFailed?.length ?? 0),
-      });
-      await store.updateJob(job.id, {
-        status: "succeeded",
-        stage: "ready",
-        progress: 100,
-        state,
-        error: null,
-        finished_at: new Date().toISOString(),
-        locked_at: null,
-        locked_by: null,
-      });
-      await store.notify(material.user_id, {
-        kind: "processing",
-        title: `“${material.title.slice(0, 120)}” is ready`,
-        body: sections.length ? `We found ${sections.filter((s) => s.level === 1).length} chapters and ${sections.filter((s) => s.level === 2).length} sections.` : "Your material is ready to study.",
-        link: `/library/${material.id}`,
-      });
-      return "succeeded";
+    // ---------------------------------------------------------------- analyse
+    if (state.step === "analyse") {
+      if (!deps.segmenter) return finish(job, material, store, state);
+      if (!state.windows) {
+        await store.deleteAiSections(material.id);
+        const chars = await store.pageCharCounts(material.id);
+        const leaves = await store.listLeafSections(material.id);
+        state.windows = planWindows(leaves, state.pageCount ?? Math.max(0, ...chars.keys()), (p) => chars.get(p) ?? 0);
+        state.analyseTotal = state.windows.length;
+        state.analyseDone = 0;
+        state.analyseFailed = 0;
+        state.unitsCreated = 0;
+        await save("analysing", "Analysing topics and learning units…");
+      }
+      const words = await store.pageWordCounts(material.id);
+      const chapterPos = 1000; // AI chapters (documents without structure) sort after none
+      while (state.windows.length && now() < deps.deadline) {
+        const window = state.windows[0];
+        const pages = await store.getPages(material.id, window.startPage, window.endPage);
+        try {
+          if (pages.some((p) => p.text.trim())) {
+            const out = await deps.segmenter.segment({ materialTitle: material.title, window, pages });
+            const units = normaliseUnits(out.units, window, (p) => words.get(p) ?? 0);
+            const rows: AiSectionRow[] = [];
+            let parentId = window.parentId;
+            if (!parentId && units.length) {
+              parentId = crypto.randomUUID();
+              rows.push({
+                id: parentId, parent_id: null, level: 1, position: chapterPos + (state.analyseDone ?? 0),
+                title: out.window_title.trim().slice(0, 300) || `Pages ${window.startPage}–${window.endPage}`,
+                summary: null, start_page: window.startPage, end_page: window.endPage,
+                estimated_minutes: units.reduce((n, u) => n + u.estimated_minutes, 0),
+                complexity: null, learning_objectives: [], key_concepts: [],
+              });
+            }
+            // A single unit spanning the whole leaf adds nothing: the leaf is already the unit.
+            const redundant = window.parentId && units.length === 1;
+            if (!redundant) {
+              units.forEach((u, i) =>
+                rows.push({ id: crypto.randomUUID(), parent_id: parentId, level: 3, position: i, ...u }),
+              );
+            }
+            if (rows.length) await store.insertAiSections(material.id, material.user_id, rows);
+            state.unitsCreated = (state.unitsCreated ?? 0) + rows.filter((r) => r.level === 3).length;
+          }
+        } catch (error) {
+          if (error instanceof RetryLaterError) {
+            await store.updateJob(job.id, { state });
+            throw error;
+          }
+          state.analyseFailed = (state.analyseFailed ?? 0) + 1;
+        }
+        state.windows = state.windows.slice(1);
+        state.analyseDone = (state.analyseDone ?? 0) + 1;
+        await save("analysing", `Analysing topics and learning units (${state.analyseDone}/${state.analyseTotal})…`);
+      }
+      if (state.windows.length) return yieldJob(job, store);
+      return finish(job, material, store, state);
     }
     return "yielded";
   } catch (error) {
     return handleFailure(job, material, store, error, now);
   }
+}
+
+async function finish(
+  job: ProcessingJob,
+  material: MaterialForProcessing,
+  store: ProcessingStore,
+  state: JobState,
+): Promise<StepOutcome> {
+  const leaves = await store.listLeafSections(material.id);
+  const unreadable = (state.ocrFailed?.length ?? 0) + (state.scannedWithoutOcr ?? 0);
+  const warnings: string[] = [];
+  if (unreadable) warnings.push(`${unreadable} page${unreadable === 1 ? "" : "s"} contain no readable text (scanned images we couldn't transcribe).`);
+  if (!leaves.length) warnings.push("No chapters or learning units were found. The planner will use page ranges for this material.");
+  if (state.analyseFailed) warnings.push(`AI analysis couldn't process ${state.analyseFailed} part${state.analyseFailed === 1 ? "" : "s"} of this material; those parts use the detected sections. Use “Analyse again” to retry.`);
+  if (state.pagesAreEstimated) warnings.push("Page numbers are estimated because this format has no fixed pages.");
+
+  await store.updateMaterial(material.id, {
+    status: "ready",
+    status_detail: null,
+    processing_progress: 100,
+    processing_error: null,
+    processing_warning: warnings.join(" ") || null,
+    ...(state.wordCount ? { word_count: state.wordCount } : {}),
+    ...(state.ocrDone !== undefined ? { ocr_page_count: (state.ocrDone ?? 0) - (state.ocrFailed?.length ?? 0) } : {}),
+  });
+  await store.updateJob(job.id, {
+    status: "succeeded",
+    stage: "ready",
+    progress: 100,
+    state,
+    error: null,
+    finished_at: new Date().toISOString(),
+    locked_at: null,
+    locked_by: null,
+  });
+  const units = state.unitsCreated ?? 0;
+  await store.notify(material.user_id, {
+    kind: "processing",
+    title: `“${material.title.slice(0, 120)}” is ready`,
+    body: units
+      ? `MindFlow organised it into ${units} learning units, ready for your study plan.`
+      : leaves.length
+        ? `We found ${leaves.length} sections, ready for your study plan.`
+        : "Your material is ready to study.",
+    link: `/library/${material.id}`,
+  });
+  return "succeeded";
 }
 
 async function yieldJob(job: ProcessingJob, store: ProcessingStore): Promise<StepOutcome> {

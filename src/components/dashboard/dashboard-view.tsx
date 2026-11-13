@@ -38,10 +38,10 @@ export function DashboardView({
   const { stats, mission, upcoming, recent, achievements } = data;
   const streak = effectiveStreak(stats.streak, stats.today);
   const nextTask = mission.find((t) => t.status !== "completed");
-  const continueHref = nextTask?.material
-    ? `/reader/${nextTask.material.id}?task=${nextTask.id}`
+  const continueHref = nextTask
+    ? `/planner/sessions/${nextTask.sessionId}`
     : recent[0]?.status === "ready"
-      ? `/reader/${recent[0].id}`
+      ? `/library/${recent[0].id}`
       : stats.materials_total > 0
         ? "/planner/new"
         : "/library?upload=1";

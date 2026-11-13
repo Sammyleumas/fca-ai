@@ -21,6 +21,7 @@ export type DashboardStats = {
 
 export type MissionTask = {
   id: string;
+  sessionId: string;
   title: string;
   status: string;
   start_page: number | null;
@@ -76,10 +77,11 @@ export async function getDashboardData(userId: string): Promise<DashboardData> {
     supabase
       .from("study_tasks")
       .select(
-        "id, title, status, start_page, end_page, estimated_minutes, position, material_id, study_sessions!inner(scheduled_date), materials(id, title, file_type)",
+        "id, session_id, title, status, start_page, end_page, estimated_minutes, position, material_id, study_sessions!inner(scheduled_date, status), materials(id, title, file_type)",
       )
       .eq("user_id", userId)
       .eq("study_sessions.scheduled_date", today)
+      .in("study_sessions.status", ["scheduled", "in_progress", "completed"])
       .order("position", { ascending: true })
       .limit(6),
     supabase
@@ -138,6 +140,7 @@ export async function getDashboardData(userId: string): Promise<DashboardData> {
     const material = one(t.materials as unknown as MissionTask["material"] | MissionTask["material"][]);
     return {
       id: t.id,
+      sessionId: t.session_id,
       title: t.title,
       status: t.status,
       start_page: t.start_page,

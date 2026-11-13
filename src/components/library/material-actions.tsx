@@ -2,8 +2,8 @@
 
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
-import { FolderInput, Pencil, RefreshCw, RotateCcw, Trash2 } from "lucide-react";
-import { deleteMaterials, moveMaterials, retryProcessing, updateMaterial } from "@/app/(app)/library/actions";
+import { FolderInput, Pencil, RefreshCw, RotateCcw, Sparkles, Trash2 } from "lucide-react";
+import { analyseMaterial, deleteMaterials, moveMaterials, retryProcessing, updateMaterial } from "@/app/(app)/library/actions";
 import { Button } from "@/components/ui/button";
 import { ConfirmDialog, Dialog } from "@/components/ui/dialog";
 import { FormMessage } from "@/components/ui/feedback";
@@ -13,11 +13,13 @@ import { UploadPanel } from "./upload-panel";
 
 export function MaterialActions({
   material,
+  aiEnabled,
   subjects,
   folders,
   maxBytes,
 }: {
-  material: { id: string; title: string; status: string; subjectId: string | null; folderId: string | null };
+  material: { id: string; title: string; status: string; subjectId: string | null; folderId: string | null; analysed: boolean };
+  aiEnabled: boolean;
   subjects: SubjectOption[];
   folders: FolderOption[];
   maxBytes: number;
@@ -47,6 +49,11 @@ export function MaterialActions({
         {material.status === "failed" && (
           <Button size="sm" onClick={() => run(() => retryProcessing(material.id))} loading={pending && !dialog}>
             <RotateCcw className="size-4" aria-hidden="true" /> Retry processing
+          </Button>
+        )}
+        {material.status === "ready" && aiEnabled && (
+          <Button size="sm" variant={material.analysed ? "secondary" : "primary"} onClick={() => run(() => analyseMaterial(material.id))} loading={pending && !dialog}>
+            <Sparkles className="size-4" aria-hidden="true" /> {material.analysed ? "Analyse again" : "Analyse with AI"}
           </Button>
         )}
         <Button size="sm" variant="secondary" onClick={() => setDialog("rename")}><Pencil className="size-4" aria-hidden="true" /> Rename</Button>

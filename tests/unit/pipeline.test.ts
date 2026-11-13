@@ -12,12 +12,15 @@ import {
   type ProcessingStore,
 } from "@/lib/materials/pipeline";
 import type { SectionDraft } from "@/lib/materials/structure";
+import { computeLeaves, type SectionRow, type SegmentationService } from "@/lib/materials/segmentation";
+import type { AiSectionRow } from "@/lib/materials/pipeline";
 import { makePdf } from "../fixtures/make";
 
 class MemoryStore implements ProcessingStore {
   material: MaterialForProcessing & MaterialPatch;
   pages = new Map<number, PageWrite>();
   sections: SectionDraft[] = [];
+  rows: (SectionRow & { source: string; complexity?: number | null })[] = [];
   job: ProcessingJob & JobPatch;
   notifications: { title: string; body: string }[] = [];
   downloadFails = 0;
@@ -50,6 +53,26 @@ class MemoryStore implements ProcessingStore {
   }
   async replaceSections(_: string, __: string, s: SectionDraft[]) {
     this.sections = s;
+    const ids = new Map(s.map((d) => [d.key, crypto.randomUUID()]));
+    this.rows = s.map((d) => ({
+      id: ids.get(d.key)!, parent_id: d.parentKey ? ids.get(d.parentKey)! : null, level: d.level, position: d.position,
+      title: d.title, start_page: d.start_page, end_page: d.end_page, source: "structure",
+    }));
+  }
+  async pageCharCounts() {
+    return new Map([...this.pages.values()].map((p) => [p.page, p.text.length]));
+  }
+  async getPages(_: string, from: number, to: number) {
+    return [...this.pages.values()].filter((p) => p.page >= from && p.page <= to).sort((a, b) => a.page - b.page).map((p) => ({ page: p.page, text: p.text }));
+  }
+  async listLeafSections() {
+    return computeLeaves(this.rows);
+  }
+  async deleteAiSections() {
+    this.rows = this.rows.filter((r) => r.source !== "ai");
+  }
+  async insertAiSections(_: string, __: string, rows: AiSectionRow[]) {
+    this.rows.push(...rows.map((r) => ({ ...r, source: "ai" })));
   }
   async updateJob(_: string, patch: JobPatch) {
     Object.assign(this.job, patch);
@@ -94,7 +117,7 @@ describe("processing pipeline", () => {
     expect(store.pages.get(2)!.text).toContain("Recognised text");
     expect(store.pages.get(1)!.ocr_used).toBe(false);
     expect(store.material.ocr_page_count).toBe(2);
-    expect(store.material.processing_warning).toContain("No chapter headings");
+    expect(store.material.processing_warning).toContain("No chapters or learning units were found");
   });
 
   it("finishes with a warning when OCR is unavailable for some pages", async () => {
@@ -162,5 +185,72 @@ describe("processing pipeline", () => {
     expect(store.job.state.step).toBe("ocr");
     expect(store.job.attempts).toBe(0);
     expect(store.pages.size).toBe(3);
+  });
+});
+
+describe("AI analysis stage", () => {
+  const segmenter = (calls: { start: number; end: number; parent: string | null }[]): SegmentationService => ({
+    async segment({ window }) {
+      calls.push({ start: window.startPage, end: window.endPage, parent: window.parentTitle });
+      const mid = Math.floor((window.startPage + window.endPage) / 2);
+      return {
+        window_title: `Topic ${window.startPage}`,
+        units: [
+          { title: `Unit A ${window.startPage}`, start_page: window.startPage, end_page: mid, summary: "s", complexity: 4, learning_objectives: ["Explain A"], key_concepts: ["A"] },
+          { title: `Unit B ${window.startPage}`, start_page: mid + 1, end_page: window.endPage + 50, summary: "s", complexity: 2, learning_objectives: [], key_concepts: [] },
+        ],
+      };
+    },
+  });
+
+  it("divides each detected section into learning units within its pages", async () => {
+    const calls: { start: number; end: number; parent: string | null }[] = [];
+    const store = new MemoryStore(await makePdf({ pages: 8, outline: [{ title: "Basics", page: 1 }, { title: "Networks", page: 5 }] }));
+    expect(await runJob(store.job, store, { ocr: null, segmenter: segmenter(calls), deadline: far() })).toBe("succeeded");
+    expect(calls).toEqual([
+      { start: 1, end: 5, parent: "Basics" },
+      { start: 5, end: 8, parent: "Networks" },
+    ]);
+    const units = store.rows.filter((r) => r.level === 3);
+    expect(units).toHaveLength(4);
+    expect(units.every((u) => u.parent_id && u.end_page <= 8)).toBe(true);
+    expect(store.material.status).toBe("ready");
+    expect(store.notifications.at(-1)!.body).toContain("4 learning units");
+    expect((await store.listLeafSections()).map((l) => l.chapterTitle)).toEqual(["Basics", "Basics", "Networks", "Networks"]);
+  });
+
+  it("creates chapters for documents with no structure", async () => {
+    const store = new MemoryStore(await makePdf({ pages: 3 }));
+    await runJob(store.job, store, { ocr: null, segmenter: segmenter([]), deadline: far() });
+    expect(store.rows.filter((r) => r.level === 1).map((r) => r.title)).toEqual(["Topic 1"]);
+    expect(store.rows.filter((r) => r.level === 3)).toHaveLength(2);
+  });
+
+  it("keeps detected sections when analysis of a part fails, and warns", async () => {
+    const store = new MemoryStore(await makePdf({ pages: 8, outline: [{ title: "Basics", page: 1 }, { title: "Networks", page: 5 }] }));
+    let n = 0;
+    const flaky: SegmentationService = {
+      async segment(input) {
+        if (n++ === 0) throw new Error("model error");
+        return segmenter([]).segment(input);
+      },
+    };
+    expect(await runJob(store.job, store, { ocr: null, segmenter: flaky, deadline: far() })).toBe("succeeded");
+    expect(store.material.processing_warning).toContain("couldn't process 1 part");
+    expect(store.rows.filter((r) => r.level === 3)).toHaveLength(2);
+  });
+
+  it("resumes analysis across invocations", async () => {
+    const store = new MemoryStore(await makePdf({ pages: 8, outline: [{ title: "Basics", page: 1 }, { title: "Networks", page: 5 }] }));
+    let t = 0;
+    const slow: SegmentationService = {
+      async segment(input) {
+        t += 1000;
+        return segmenter([]).segment(input);
+      },
+    };
+    expect(await runJob(store.job, store, { ocr: null, segmenter: slow, deadline: 500, now: () => t })).toBe("yielded");
+    expect(await runJob({ ...store.job, state: store.job.state }, store, { ocr: null, segmenter: slow, deadline: Infinity, now: () => t })).toBe("succeeded");
+    expect(store.rows.filter((r) => r.level === 3)).toHaveLength(4);
   });
 });

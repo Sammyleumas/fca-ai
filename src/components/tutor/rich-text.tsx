@@ -5,10 +5,16 @@ import { Fragment, type ReactNode } from "react";
  * and `inline code`. Renders React nodes only — never raw HTML.
  */
 function inline(text: string, keyPrefix: string): ReactNode[] {
-  const parts = text.split(/(\*\*[^*]+\*\*|`[^`]+`)/g);
+  const parts = text.split(/(\*\*[^*]+\*\*|`[^`]+`|\[\d{1,2}\])/g);
   return parts.map((p, i) => {
     const key = `${keyPrefix}-${i}`;
     if (p.startsWith("**") && p.endsWith("**") && p.length > 4) return <strong key={key} className="font-semibold text-fg">{p.slice(2, -2)}</strong>;
+    if (/^\[\d{1,2}\]$/.test(p))
+      return (
+        <sup key={key} className="mx-0.5 rounded bg-accent/15 px-1 text-[10px] font-semibold text-accent" aria-label={`source ${p.slice(1, -1)}`}>
+          {p.slice(1, -1)}
+        </sup>
+      );
     if (p.startsWith("`") && p.endsWith("`") && p.length > 2)
       return (
         <code key={key} className="rounded bg-white/10 px-1.5 py-0.5 font-mono text-[0.9em]">

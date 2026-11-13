@@ -2,7 +2,9 @@ import "server-only";
 import { AIError, getAIProvider, isAIConfigured } from "@/lib/ai";
 import { recordAIUsage } from "@/lib/ai/guard";
 import { createAdminClient, hasAdminClient } from "@/lib/supabase/admin";
+import { SEGMENTATION_SYSTEM_PROMPT, segmentationUserPrompt } from "@/lib/ai/prompts/segmentation";
 import { RetryLaterError, runJob, type OcrService, type ProcessingJob } from "./pipeline";
+import { segmentationSchema, type SegmentationService } from "./segmentation";
 import { SupabaseProcessingStore } from "./supabase-store";
 
 function ocrServiceFor(userId: string): OcrService | null {
@@ -15,6 +17,31 @@ function ocrServiceFor(userId: string): OcrService | null {
         const { pages, usage } = await provider.transcribePdf!(pdf, pageCount);
         await recordAIUsage(userId, "ocr", usage);
         return pages;
+      } catch (error) {
+        if (error instanceof AIError && (error.code === "rate_limited" || error.code === "unavailable")) {
+          throw new RetryLaterError(60, error.message);
+        }
+        throw error;
+      }
+    },
+  };
+}
+
+function segmenterFor(userId: string): SegmentationService | null {
+  if (!isAIConfigured()) return null;
+  const provider = getAIProvider();
+  return {
+    async segment({ materialTitle, window, pages }) {
+      try {
+        const { object, usage } = await provider.generateObject({
+          system: SEGMENTATION_SYSTEM_PROMPT,
+          messages: [{ role: "user", content: segmentationUserPrompt(materialTitle, window, pages) }],
+          schema: segmentationSchema,
+          maxTokens: 8000,
+          effort: "low",
+        });
+        await recordAIUsage(userId, "segmentation", usage);
+        return object;
       } catch (error) {
         if (error instanceof AIError && (error.code === "rate_limited" || error.code === "unavailable")) {
           throw new RetryLaterError(60, error.message);
@@ -55,7 +82,11 @@ export async function processPendingJobs({
     if (!job) break;
     processed++;
     try {
-      await runJob(job, store, { ocr: ocrServiceFor(job.user_id), deadline: started + budgetMs - 8_000 });
+      await runJob(job, store, {
+        ocr: ocrServiceFor(job.user_id),
+        segmenter: segmenterFor(job.user_id),
+        deadline: started + budgetMs - 8_000,
+      });
     } catch (e) {
       // runJob handles its own failures; this only guards unexpected store errors.
       console.error("processing job crashed", job.id, e instanceof Error ? e.message : e);

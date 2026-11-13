@@ -1,7 +1,8 @@
 import "server-only";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { countWords } from "./extract/types";
-import type { JobPatch, MaterialPatch, PageWrite, ProcessingStore } from "./pipeline";
+import type { AiSectionRow, JobPatch, MaterialPatch, PageWrite, ProcessingStore } from "./pipeline";
+import { computeLeaves, type SectionRow } from "./segmentation";
 import type { SectionDraft } from "./structure";
 
 const BUCKET = "materials";
@@ -77,6 +78,57 @@ export class SupabaseProcessingStore implements ProcessingStore {
       if (!data || data.length < 500) break;
     }
     return counts;
+  }
+
+  async pageCharCounts(materialId: string) {
+    const counts = new Map<number, number>();
+    for (let from = 0; ; from += 1000) {
+      const { data, error } = await this.db
+        .from("material_pages")
+        .select("page_number, char_count")
+        .eq("material_id", materialId)
+        .order("page_number")
+        .range(from, from + 999);
+      this.check(error, "read page sizes");
+      for (const row of data ?? []) counts.set(row.page_number, row.char_count);
+      if (!data || data.length < 1000) break;
+    }
+    return counts;
+  }
+
+  async getPages(materialId: string, from: number, to: number) {
+    const { data, error } = await this.db
+      .from("material_pages")
+      .select("page_number, content")
+      .eq("material_id", materialId)
+      .gte("page_number", from)
+      .lte("page_number", to)
+      .order("page_number");
+    this.check(error, "read pages");
+    return (data ?? []).map((r) => ({ page: r.page_number as number, text: r.content as string }));
+  }
+
+  async listLeafSections(materialId: string) {
+    const { data, error } = await this.db
+      .from("document_sections")
+      .select("id, parent_id, level, position, title, start_page, end_page")
+      .eq("material_id", materialId)
+      .limit(5000);
+    this.check(error, "read sections");
+    return computeLeaves((data ?? []) as SectionRow[]);
+  }
+
+  async deleteAiSections(materialId: string) {
+    this.check((await this.db.from("document_sections").delete().eq("material_id", materialId).eq("source", "ai")).error, "clear AI sections");
+  }
+
+  async insertAiSections(materialId: string, userId: string, rows: AiSectionRow[]) {
+    // Parents (level 1) first, then units.
+    const ordered = [...rows].sort((a, b) => a.level - b.level);
+    const payload = ordered.map((r) => ({ ...r, material_id: materialId, user_id: userId, source: "ai" }));
+    for (let i = 0; i < payload.length; i += PAGE_BATCH) {
+      this.check((await this.db.from("document_sections").insert(payload.slice(i, i + PAGE_BATCH))).error, "insert AI sections");
+    }
   }
 
   async replaceSections(materialId: string, userId: string, sections: SectionDraft[]) {

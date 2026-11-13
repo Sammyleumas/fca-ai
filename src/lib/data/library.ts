@@ -62,7 +62,7 @@ export async function getLibrary(userId: string): Promise<{
 export type MaterialDetail = LibraryItem & {
   word_count: number | null;
   ocr_page_count: number;
-  sections: { id: string; parent_id: string | null; level: number; position: number; title: string; start_page: number; end_page: number; estimated_minutes: number | null }[];
+  sections: { id: string; parent_id: string | null; level: number; position: number; title: string; start_page: number; end_page: number; estimated_minutes: number | null; complexity: number | null; summary: string | null; source: string }[];
   previewPages: { page_number: number; content: string; ocr_used: boolean }[];
 };
 
@@ -75,7 +75,7 @@ export async function getMaterialDetail(userId: string, id: string): Promise<Mat
     supabase.from("materials").select("word_count, ocr_page_count").eq("id", id).single(),
     supabase
       .from("document_sections")
-      .select("id, parent_id, level, position, title, start_page, end_page, estimated_minutes")
+      .select("id, parent_id, level, position, title, start_page, end_page, estimated_minutes, complexity, summary, source")
       .eq("material_id", id)
       .order("start_page")
       .order("level")

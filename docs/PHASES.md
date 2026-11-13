@@ -2,7 +2,7 @@
 
 Status legend: ✅ done & tested · 🟡 partial · ⏳ not started
 
-Current: **Phase 2 complete** · next: Phase 3 (AI intelligence).
+Current: **Phase 3 complete** · next: Phase 4 (Reading experience).
 
 ## Phase 1 — Foundation ✅
 
@@ -52,9 +52,25 @@ against your Supabase project before launch.
 
 **Not verified here:** real uploads to Supabase Storage and real OCR calls (no credentials in the sandbox).
 
-## Phase 3 — AI intelligence ⏳
-Chunked document analysis, chapter → subtopic → learning-unit segmentation with page references, individual &
-combined study plans, adaptive rescheduling with student approval, material-grounded tutor with citations.
+## Phase 3 — AI intelligence ✅
+
+| Area | Status | Notes |
+|---|---|---|
+| Document analysis & segmentation | ✅ | New `analysing` processing stage. Each detected chapter/subtopic (or the whole document if it had no structure) is sent to the AI in **page-bounded windows** (≤ 12 pages / 24k chars, never the whole document), which returns learning units with titles, page ranges, summary, complexity 1–5, learning objectives and key concepts. Output is validated: pages are clamped to the window, gaps closed, overlaps reduced to one shared boundary page, duplicates removed; reading time is recomputed from real word counts. Resumable across invocations; failed windows fall back to detected sections with a warning; "Analyse with AI" re-runs it for older materials. |
+| Prompt-injection safety | ✅ | Document text is delimited as untrusted data in every prompt (segmentation, OCR, grounded tutor); tags inside documents are stripped so content can't break out of its block; AI output never triggers actions without server-side validation. |
+| Study plan engine | ✅ | Deterministic and unit-tested (`src/lib/planner/scheduler.ts`). It schedules analysed units — never blind page ranges — using complexity-weighted time, the student's study days, daily time and workload (light 80 % / balanced / intensive 120 %). Spreads work evenly (no front-loading), splits only units longer than a day (by pages), adds a daily quiz session, weekly revision and a final revision + mock assessment, dropping revision days before it would overflow. |
+| Individual & combined plans | ✅ | Combined plans interleave materials by proportional progress, keeping each material's order, so all materials finish near the deadline. One timetable, one set of sessions. |
+| Feasibility | ✅ | If the work can't fit, the preview explains the required daily time and offers one-click fixes: more minutes, the earliest deadline that fits, or every day. Infeasible plans can't be saved. |
+| Plan creation | ✅ | Server recomputes the plan (client sessions are never trusted) and saves plan, materials, sessions and tasks in one transaction (`create_study_plan`). Plan limits per subscription. |
+| Daily progress | ✅ | Ticking off tasks records verified `task_completed` / `session_completed` activity → streaks, XP, achievements; sessions and plans complete automatically. Skip / restore tasks. |
+| Manual editing | ✅ | Move sessions to another day (warns past the deadline), skip tasks, archive / restore / delete plans. |
+| Adaptive rescheduling | ✅ | Missed study sessions are detected; MindFlow proposes a new schedule for every unfinished task from today, keeping order and realistic loads and the deadline whenever possible (otherwise it proposes the earliest later deadline). The student reviews and approves; the change is applied atomically (`apply_plan_reschedule`), refuses stale proposals, never moves completed work, and sends a "plan changed" notification. Nothing is overwritten silently. |
+| Material-grounded AI tutor | ✅ | Postgres full-text search (`search_material_pages`, RLS-scoped) + the pages of the section being studied. Answers cite numbered sources; only citations of passages actually provided are kept and shown as "Material · p. N" chips. If the material doesn't cover the question, the tutor says so and labels general knowledge. General mode remains available; the student picks "Answer from" per conversation. Opened from a material or a study session with context. |
+| Dashboard | ✅ | Today's Mission and Upcoming Plan now come from real plans; links open the study session. |
+
+**Tests added:** scheduler (14), segmentation windows & normalisation (5), pipeline analysis stage (4, incl. failures and resume), grounding helpers (3), database: atomic plan creation, cross-user rejection, reschedule rules, page search isolation (4).
+
+**Not verified here:** live AI segmentation / tutor quality (no API key in the sandbox).
 
 ## Phase 4 — Reading experience ⏳
 PDF.js reader, TOC & search, zoom/fullscreen/focus mode, highlights, notes, bookmarks, resume position, reading
