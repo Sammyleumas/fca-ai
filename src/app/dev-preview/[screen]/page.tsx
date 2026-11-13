@@ -6,6 +6,8 @@ import { TutorLayout } from "@/components/tutor/tutor-layout";
 import { LibraryView } from "@/components/library/library-view";
 import { PlanWizard } from "@/components/planner/plan-wizard";
 import { PlanTimeline } from "@/components/planner/plan-timeline";
+import { AnalyticsView } from "@/components/analytics/analytics-view";
+import type { AnalyticsSummary } from "@/lib/analytics/insights";
 import { buildPlan } from "@/lib/planner/scheduler";
 import type { PlanDetail } from "@/lib/data/planner";
 import { applyLibraryQuery, filterCounts, parseLibraryQuery, type LibraryItem } from "@/lib/materials/library-filter";
@@ -109,6 +111,31 @@ function samplePlan(): PlanDetail {
   };
 }
 
+function sampleAnalytics(): AnalyticsSummary {
+  const today = localDateISO("UTC");
+  const mins = [35, 50, 0, 42, 65, 30, 55, 20, 0, 48, 70, 40, 25, 60];
+  const daily = lastNDates(today, 7).map((date, i) => ({ date, minutes: mins[i + 7], tasks: 1, quizzes: i % 3 === 0 ? 1 : 0, qualified: mins[i + 7] > 0 }));
+  const heatmap = lastNDates(today, 84).map((date, i) => ({ date, minutes: (i * 37) % 7 === 0 ? 0 : ((i * 53) % 95) }));
+  return {
+    today, from: daily[0].date, days: 7, daily, heatmap,
+    totals: { minutes: 283, prev_minutes: 220, reading_minutes: 160, active_days: 6, tasks_completed: 9, sessions_completed: 5, quizzes_completed: 8, flashcard_reviews: 64, avg_quiz: 81, prev_avg_quiz: 72, materials_completed: 1, materials_total: 4, overall_progress: 78, all_time_minutes: 720 },
+    quiz_trend: [62, 70, 68, 78, 74, 85, 88, 95].map((p, i) => ({ date: daily[Math.min(6, i)].date, percent: p, title: `Daily quiz ${i + 1}`, kind: "daily" })),
+    topics: [
+      { topic: "Database normalisation", section_id: null, score: 3, max: 8, attempts: 2, percent: 38 },
+      { topic: "Transport protocols", section_id: null, score: 5, max: 9, attempts: 3, percent: 56 },
+      { topic: "Routing", section_id: null, score: 9, max: 10, attempts: 3, percent: 90 },
+    ],
+    materials: [
+      { id: "1", title: "Intro to CS", subject: "Computer Science", minutes: 140, reading_percent: 68, quiz_avg: 92, quiz_count: 4 },
+      { id: "2", title: "Maths notes", subject: "Mathematics", minutes: 80, reading_percent: 40, quiz_avg: 85, quiz_count: 2 },
+      { id: "3", title: "Physics guide", subject: "Physics", minutes: 63, reading_percent: 20, quiz_avg: 73, quiz_count: 1 },
+      { id: "4", title: "DB systems", subject: "Databases", minutes: 0, reading_percent: 10, quiz_avg: 52, quiz_count: 1 },
+    ],
+    week: { start: daily[0].date, minutes: 210, active_days: 4, quizzes: 2, flashcard_reviews: 18, tasks: 6, goal_minutes: 300, goal_days: 5 },
+    streak: { current: 7, longest: 9, last: today },
+  };
+}
+
 export default async function DevPreview({ params }: PageProps<"/dev-preview/[screen]">) {
   if (process.env.NODE_ENV !== "development") notFound();
   const { screen } = await params;
@@ -128,6 +155,8 @@ export default async function DevPreview({ params }: PageProps<"/dev-preview/[sc
         uploadOpen={screen === "library-upload"}
         uploadsEnabled
       />
+    ) : screen === "analytics" ? (
+      <AnalyticsView s={sampleAnalytics()} range="7d" />
     ) : screen === "plan" ? (
       <div className="mx-auto max-w-4xl space-y-5">
         <h1 className="text-2xl font-semibold tracking-tight">Intro to CS — exam prep</h1>

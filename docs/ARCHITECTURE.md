@@ -22,7 +22,7 @@ kept up to date as each phase lands (see `docs/PHASES.md` for status).
 ## 2. Folder structure
 
 ```
-mindflow/
+fca-ai/   (repository root)
 ├─ docs/                     architecture, phases, deployment, design references
 ├─ supabase/
 │  ├─ migrations/            versioned SQL (schema, RLS, functions, storage, seed catalog)

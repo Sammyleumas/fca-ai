@@ -17,7 +17,8 @@ Supabase (Postgres, Auth, Storage, RLS) · Anthropic Claude via a swappable prov
 ## Quick start
 
 ```bash
-cd mindflow
+git clone https://github.com/Sammyleumas/fca-ai.git
+cd fca-ai
 npm install
 cp .env.example .env.local          # fill in Supabase + Anthropic keys
 npx supabase link --project-ref <ref> && npx supabase db push   # apply migrations

@@ -2,7 +2,9 @@
 
 Status legend: ✅ done & tested · 🟡 partial · ⏳ not started
 
-Current: **Phase 5 complete** · next: Phase 6 (Engagement).
+Current: **Phase 6 complete** · next: Phase 7 (Monetisation & launch).
+
+Repository: https://github.com/Sammyleumas/fca-ai (moved from `Ayo-food/mindflow` with full history).
 
 ## Phase 1 — Foundation ✅
 
@@ -109,8 +111,22 @@ against your Supabase project before launch.
 
 **Bugs found and fixed while testing:** "1,000" vs "1000" in fill-in marking; quiz drafts lost on refresh (effect ordering); a partial unique index that PostgREST upserts can't target; a PostgREST embed alias; mobile button layout.
 
-## Phase 6 — Engagement ⏳
-Scheduled reminders (time-zone aware), analytics pages, weekly goals & challenges, monthly reports.
+## Phase 6 — Engagement ✅
+
+| Area | Status | Notes |
+|---|---|---|
+| Analytics | ✅ | `analytics_summary()` (RLS-scoped) computes everything from stored activity: study time per day/week (7D / 30D / 3M / 1Y), change vs the previous period, active days & consistency, tasks/sessions/quizzes/flashcard reviews, quiz score trend, materials completed & overall progress, per-subject (or per-material) time and quiz average, weak topics aggregated from graded quiz topics, 12-week activity heatmap, current/longest streak. No demo data — empty states for new students. |
+| Charts | ✅ | Hand-built SVG following the data-viz spec: single series in brand lime (≥ 3:1 on the dark surface), thin columns with rounded data-ends, 2px line with ringed markers, recessive gridlines, selective labels, hover tooltips with large hit targets, "View as table" for every chart, sequential heatmap with legend. |
+| Personalised recommendations | ✅ | e.g. "You consistently perform well in Computer Networks (88%), but Databases (52%) requires more revision." Plus weak topics, mastered topics, study-time and score trends, consistency advice and a healthy-limits note for very long days. Every sentence is backed by numbers on the page. |
+| Weekly goals & challenges | ✅ | Weekly minutes and study-day goals (Settings → Learning), challenges for the goal, study days, 3 quizzes and 30 flashcard reviews. |
+| Milestones | ✅ | New achievements: Ten-Hour Scholar, Fifty-Hour Scholar, Card Shark (new criteria in `record_study_activity`). |
+| Monthly reports | ✅ | `/analytics/report?month=YYYY-MM`: study time, active days, tasks, sessions, quizzes & average, flashcard reviews, XP, achievements, daily chart, highlights; month navigation. |
+| Reminders | ✅ | `generate_user_notifications()` in each student's time zone, honouring their preferences: today's sessions (morning), unfinished tasks from missed sessions (per plan), daily study reminder at their chosen time (only if they haven't studied yet), daily quiz waiting (evening), gentle streak nudge (18:00–21:00, live streaks only), weekly goal reached, monthly report ready. Quiet hours 22:00–07:00. Each reminder has a de-duplication key so it fires once. Runs when the student opens the app (at most every 15 min) and from `/api/jobs/notifications` (cron). |
+| Email reminders | ⏳ | The preference is stored; email delivery needs an email provider (Phase 7). |
+
+**Tests added:** reminders (local-time threshold, de-duplication, quiet hours, opt-outs, already-studied, all reminder types, access control) and analytics aggregates/isolation (database); insights, subject grouping, trends, challenges (unit). Analytics screen checked in a real browser on desktop and mobile.
+
+**Bug found and fixed while testing:** a chart received a formatting function from a server component (not serialisable — the page would have failed in production).
 
 ## Phase 7 — Monetisation & launch ⏳
 Paystack + Stripe checkout and webhooks (server-side entitlement), security review, full E2E journey test,

@@ -31,6 +31,8 @@ export async function saveLearning(_prev: SettingsState, formData: FormData): Pr
   const user = await requireUser();
   const parsed = learningSettingsSchema.safeParse({
     daily_study_minutes: formData.get("daily_study_minutes"),
+    weekly_goal_minutes: formData.get("weekly_goal_minutes"),
+    weekly_goal_days: formData.get("weekly_goal_days"),
     preferred_study_time: formData.get("preferred_study_time") || null,
     learning_goals: formData.getAll("learning_goals").map(String),
   });

@@ -112,6 +112,27 @@ export function LearningForm({ profile }: { profile: ProfileRow }) {
             </select>
           </div>
         </div>
+        <div className="grid gap-4 sm:grid-cols-2">
+          <TextField
+            label="Weekly goal (minutes)"
+            name="weekly_goal_minutes"
+            type="number"
+            min={30}
+            max={5040}
+            step={15}
+            defaultValue={profile.weekly_goal_minutes ?? 300}
+            error={state.fields?.weekly_goal_minutes}
+          />
+          <TextField
+            label="Weekly goal (study days)"
+            name="weekly_goal_days"
+            type="number"
+            min={1}
+            max={7}
+            defaultValue={profile.weekly_goal_days ?? 5}
+            error={state.fields?.weekly_goal_days}
+          />
+        </div>
         <fieldset>
           <legend className="mb-2 text-sm font-medium text-fg-2">Learning goals</legend>
           <div className="grid gap-2 sm:grid-cols-2">
@@ -138,7 +159,7 @@ export function NotificationsForm({ prefs }: { prefs: NotificationPrefs }) {
     { key: "streaks", label: "Streak notifications" },
     { key: "achievements", label: "Achievements" },
     { key: "plan_changes", label: "Study plan changes" },
-    { key: "email", label: "Also send important reminders by email" },
+    { key: "email", label: "Also email important reminders (once email delivery is enabled)" },
   ];
   return (
     <Section id="notifications" title="Notifications">

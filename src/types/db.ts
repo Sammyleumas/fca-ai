@@ -38,6 +38,8 @@ export interface ProfileRow {
   education_level: EducationLevel | null;
   learning_goals: string[];
   daily_study_minutes: number;
+  weekly_goal_minutes: number;
+  weekly_goal_days: number;
   preferred_study_time: "morning" | "afternoon" | "evening" | "night" | "flexible" | null;
   timezone: string;
   notification_prefs: NotificationPrefs;

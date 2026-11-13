@@ -3,7 +3,7 @@
 ## 1. Supabase
 
 1. Create a project (Postgres 15+).
-2. Apply migrations from `mindflow/`:
+2. Apply migrations from the repository root:
    ```bash
    npx supabase link --project-ref <ref>
    npx supabase db push
@@ -19,7 +19,7 @@
 
 ## 2. Vercel
 
-1. Import the repository and set **Root Directory** to `mindflow`.
+1. Import the `Sammyleumas/fca-ai` repository (the app is at the repository root; framework preset: Next.js).
 2. Environment variables (Production + Preview), see `.env.example`:
    `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`, `SUPABASE_SECRET_KEY`,
    `NEXT_PUBLIC_SITE_URL`, `AI_PROVIDER`, `ANTHROPIC_API_KEY` (optional `ANTHROPIC_MODEL`).
@@ -27,12 +27,14 @@
 3. Deploy. Build command `next build`, output handled automatically.
 4. **Background processing.** Processing starts automatically after each upload and continues while a student
    has the library open. For processing that also continues when nobody is online, schedule the worker:
-   - Vercel Pro: add `mindflow/vercel.json` with
-     `{"crons": [{"path": "/api/jobs/process", "schedule": "* * * * *"}]}` — Vercel sends
+   - Vercel Pro: add `vercel.json` with
+     `{"crons": [{"path": "/api/jobs/process", "schedule": "* * * * *"}, {"path": "/api/jobs/notifications", "schedule": "5 * * * *"}]}` — Vercel sends
      `Authorization: Bearer $CRON_SECRET` automatically.
    - Vercel Hobby (daily crons only) or elsewhere: call
      `curl -H "Authorization: Bearer $CRON_SECRET" https://<domain>/api/jobs/process` from any scheduler every minute.
    The function needs up to 300 s (`maxDuration`); on Hobby the limit is lower and jobs simply resume on the next call.
+   Reminders (`/api/jobs/notifications`, hourly) are also generated whenever a student opens the app, so they work without a
+   scheduler; the hourly job makes them arrive on time for students who haven't opened MindFlow that day.
 
 ## 3. Verify after deploy
 

@@ -1,15 +1,14 @@
 import type { Metadata } from "next";
-import { ComingInPhase } from "@/components/coming-soon";
+import { AnalyticsView } from "@/components/analytics/analytics-view";
+import { RANGES, type RangeKey } from "@/lib/analytics/ranges";
+import { requireOnboardedUser } from "@/lib/auth/dal";
+import { getAnalytics } from "@/lib/data/analytics";
 
 export const metadata: Metadata = { title: "Analytics" };
 
-export default function AnalyticsPage() {
-  return (
-    <ComingInPhase
-      title="Analytics"
-      phase={6}
-      description="Study time, consistency, subject performance, weak areas and improvement trends — calculated only from your real activity."
-      points={["Weekly & monthly activity", "Subject performance", "Weak-area detection", "Personalised recommendations"]}
-    />
-  );
+export default async function AnalyticsPage({ searchParams }: PageProps<"/analytics">) {
+  await requireOnboardedUser();
+  const sp = await searchParams;
+  const range: RangeKey = typeof sp.range === "string" && sp.range in RANGES ? (sp.range as RangeKey) : "7d";
+  return <AnalyticsView s={await getAnalytics(range)} range={range} />;
 }
