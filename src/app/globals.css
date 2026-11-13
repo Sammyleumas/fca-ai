@@ -1,0 +1,111 @@
+@import "tailwindcss";
+
+/*
+ * MindFlow design tokens — Dark Cinematic Glassmorphism.
+ * Reference designs: docs/design/*.png
+ */
+:root {
+  --mf-bg: #080909;
+  --mf-bg-2: #111312;
+  --mf-glass: rgba(255, 255, 255, 0.06);
+  --mf-glass-strong: rgba(255, 255, 255, 0.09);
+  --mf-border: rgba(255, 255, 255, 0.1);
+  --mf-border-strong: rgba(255, 255, 255, 0.16);
+  --mf-accent: #d6ff35;
+  --mf-accent-2: #a9d92d;
+  --mf-text: #ffffff;
+  --mf-text-2: #a5a5a5;
+  --mf-muted: #777777;
+  --mf-success: #43c77a;
+  --mf-warning: #f5b942;
+  --mf-error: #ef6262;
+  color-scheme: dark;
+}
+
+@theme inline {
+  --color-bg: var(--mf-bg);
+  --color-bg-2: var(--mf-bg-2);
+  --color-glass: var(--mf-glass);
+  --color-glass-strong: var(--mf-glass-strong);
+  --color-line: var(--mf-border);
+  --color-line-strong: var(--mf-border-strong);
+  --color-accent: var(--mf-accent);
+  --color-accent-2: var(--mf-accent-2);
+  --color-fg: var(--mf-text);
+  --color-fg-2: var(--mf-text-2);
+  --color-muted: var(--mf-muted);
+  --color-success: var(--mf-success);
+  --color-warning: var(--mf-warning);
+  --color-error: var(--mf-error);
+  --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+  --radius-glass: 1.25rem;
+  --shadow-glass: 0 1px 0 0 rgba(255, 255, 255, 0.06) inset, 0 24px 48px -24px rgba(0, 0, 0, 0.8);
+  --shadow-accent: 0 0 0 1px rgba(214, 255, 53, 0.35), 0 10px 30px -10px rgba(214, 255, 53, 0.45);
+}
+
+html,
+body {
+  background: var(--mf-bg);
+  color: var(--mf-text);
+}
+
+body {
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+::selection {
+  background: var(--mf-accent);
+  color: #0b0c0b;
+}
+
+@layer components {
+  .glass {
+    background: linear-gradient(180deg, rgba(255, 255, 255, 0.075), rgba(255, 255, 255, 0.035));
+    border: 1px solid var(--mf-border);
+    box-shadow: var(--shadow-glass);
+    backdrop-filter: blur(18px) saturate(140%);
+    -webkit-backdrop-filter: blur(18px) saturate(140%);
+  }
+  .glass-strong {
+    background: linear-gradient(180deg, rgba(255, 255, 255, 0.1), rgba(255, 255, 255, 0.05));
+    border: 1px solid var(--mf-border-strong);
+    box-shadow: var(--shadow-glass);
+    backdrop-filter: blur(24px) saturate(150%);
+    -webkit-backdrop-filter: blur(24px) saturate(150%);
+  }
+  /* Soft lime ambient glow used behind hero cards and the active nav pill. */
+  .glow-accent {
+    box-shadow: 0 0 0 1px rgba(214, 255, 53, 0.45), 0 0 28px -6px rgba(214, 255, 53, 0.55);
+  }
+  .text-gradient-accent {
+    background: linear-gradient(90deg, #e4ff6a, var(--mf-accent) 45%, var(--mf-accent-2));
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+  .focus-ring {
+    outline: none;
+  }
+  .focus-ring:focus-visible {
+    box-shadow: 0 0 0 2px var(--mf-bg), 0 0 0 4px var(--mf-accent);
+  }
+  .scrollbar-none {
+    scrollbar-width: none;
+  }
+  .scrollbar-none::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
