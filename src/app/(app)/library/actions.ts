@@ -66,8 +66,8 @@ export async function prepareUpload(input: z.input<typeof prepareSchema>): Promi
   const { name, size, type, checksum, subjectId, folderId, allowDuplicate, replaceMaterialId } = parsed.data;
 
   if (!hasAdminClient()) return { ok: false, error: "Uploads aren't configured on this server yet." };
-  const { plan } = await getShellData(user.id);
-  const limits = limitsFor(plan);
+  const { tier } = await getShellData(user.id);
+  const limits = limitsFor(tier);
   const check = checkFileMeta({ name, size, type }, limits.maxUploadBytes);
   if (!check.ok) return { ok: false, error: check.reason };
 
@@ -160,9 +160,9 @@ export async function finalizeUpload(input: z.input<typeof finalizeSchema>): Pro
   const object = listing?.find((o) => o.name === objectName);
   if (!object) return { ok: false, error: "The upload didn't complete. Please try again." };
 
-  const { plan } = await getShellData(user.id);
+  const { tier } = await getShellData(user.id);
   const storedSize = Number((object.metadata as { size?: number } | null)?.size ?? 0);
-  if (storedSize > limitsFor(plan).maxUploadBytes) {
+  if (storedSize > limitsFor(tier).maxUploadBytes) {
     await admin.storage.from(BUCKET).remove([path]);
     return { ok: false, error: "This file is larger than your plan allows." };
   }
@@ -176,7 +176,7 @@ export async function finalizeUpload(input: z.input<typeof finalizeSchema>): Pro
 
   if (replace) {
     if (!name || !size || !checksum) return { ok: false, error: "Invalid request." };
-    const check = checkFileMeta({ name, size }, limitsFor(plan).maxUploadBytes);
+    const check = checkFileMeta({ name, size }, limitsFor(tier).maxUploadBytes);
     if (!check.ok) return { ok: false, error: check.reason };
     const oldPath = material.storage_path;
     const { error } = await admin

@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { AuthHeader } from "@/components/auth/auth-header";
 import { LoginForm } from "@/components/auth/login-form";
+import { GuestButton } from "@/components/auth/guest-button";
 import { OAuthButtons } from "@/components/auth/oauth-buttons";
 import { FormMessage } from "@/components/ui/feedback";
 import { safeNextPath } from "@/lib/routes";
@@ -27,6 +28,7 @@ export default async function LoginPage({ searchParams }: PageProps<"/login">) {
       {sp.signed_out && <FormMessage tone="success" className="mb-4">You have been signed out.</FormMessage>}
       <LoginForm next={next} />
       <OAuthButtons next={next} />
+      <GuestButton size="md" className="mt-4" />
       <p className="mt-8 text-center text-sm text-fg-2">
         Don&apos;t have an account?{" "}
         <Link href="/signup" className="focus-ring rounded font-semibold text-accent hover:underline">

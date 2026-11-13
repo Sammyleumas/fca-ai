@@ -104,7 +104,7 @@ export default async function MaterialPage({ params }: PageProps<"/library/[id]"
           aiEnabled={isAIConfigured()}
           subjects={library.subjects}
           folders={library.folders}
-          maxBytes={limitsFor(shell.plan).maxUploadBytes}
+          maxBytes={limitsFor(shell.tier).maxUploadBytes}
         />
       </GlassCard>
 

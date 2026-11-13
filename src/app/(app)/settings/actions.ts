@@ -1,5 +1,6 @@
 "use server";
 
+import { removeUserFiles } from "@/lib/account/files";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { requireUser } from "@/lib/auth/dal";
@@ -112,18 +113,9 @@ export async function deleteAccount(_prev: SettingsState, formData: FormData): P
     }
   }
 
-  // 1. Remove stored files (paged; storage is not covered by database cascades).
-  for (let round = 0; round < 50; round++) {
-    const { data: folders } = await admin.storage.from("materials").list(user.id, { limit: 100 });
-    if (!folders?.length) break;
-    const paths: string[] = [];
-    for (const folder of folders) {
-      const { data: files } = await admin.storage.from("materials").list(`${user.id}/${folder.name}`, { limit: 1000 });
-      if (files?.length) paths.push(...files.map((f) => `${user.id}/${folder.name}/${f.name}`));
-      else paths.push(`${user.id}/${folder.name}`);
-    }
-    const { error } = await admin.storage.from("materials").remove(paths);
-    if (error) return { error: "We couldn't remove your files. Nothing was deleted — please try again." };
+  // 1. Remove stored files (storage is not covered by database cascades).
+  if (!(await removeUserFiles(admin, user.id))) {
+    return { error: "We couldn't remove your files. Nothing was deleted — please try again." };
   }
 
   // 2. Delete the auth user; every table cascades from auth.users.

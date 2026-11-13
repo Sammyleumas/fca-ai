@@ -9,6 +9,7 @@
 | Prompt injection | Document text is wrapped as untrusted data in prompts, model has no tools that change data, outputs validated with schemas | prompt builders in `src/lib/ai/prompts/*` (review) |
 | Uploads | Extension + MIME + magic-byte checks, size limits by plan, sanitised file names, private bucket with `{user_id}/` paths | `tests/unit/materials.test.ts` + DB storage test |
 | Rate limiting | Postgres fixed-window limits on AI, uploads, analysis, export, checkout, progress writes | DB test |
+| Guest access | Anonymous Supabase users (`is_anonymous`) under the same RLS; smaller limits; no payments until saved with an email; sign-out warning; unused guests deleted after 30 days (`/api/jobs/cleanup-guests`); enable CAPTCHA in Supabase | `tests/db/guests.test.ts` |
 | Auth | Supabase Auth (PKCE), email verification, server-side session checks (`getClaims`) in every action/route | E2E smoke |
 | Headers | CSP (self + Supabase only, no third-party scripts/frames), HSTS, nosniff, `frame-ancestors 'none'`, strict referrer, permissions policy | `curl -I` against `next start` |
 | Cron/jobs | `/api/jobs/*` require `Authorization: Bearer $CRON_SECRET` | route code |

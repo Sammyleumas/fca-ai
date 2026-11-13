@@ -1,9 +1,11 @@
+import Link from "next/link";
 import type { Metadata } from "next";
 import { Check, Info } from "lucide-react";
 import { ManageSubscription, UpgradeOptions, type ProviderOption } from "@/components/settings/billing-controls";
 import { FormMessage } from "@/components/ui/feedback";
 import { GlassCard } from "@/components/ui/glass-card";
 import { requireOnboardedUser } from "@/lib/auth/dal";
+import { buttonClasses } from "@/components/ui/button";
 import { billingProviders } from "@/lib/billing/config";
 import { effectivePlan, type SubscriptionState } from "@/lib/billing/entitlements";
 import { PLAN_LIMITS } from "@/lib/billing/plans";
@@ -87,7 +89,11 @@ export default async function BillingPage({ searchParams }: PageProps<"/settings
             </ul>
             {p === "premium" && plan !== "premium" && (
               <div className="mt-6">
-                {providers.length ? (
+                {user.isGuest ? (
+                  <Link href="/account/save" className={buttonClasses({ className: "w-full" })}>
+                    Save your account to upgrade
+                  </Link>
+                ) : providers.length ? (
                   <UpgradeOptions providers={providers} preferred={preferred} />
                 ) : (
                   <p className="flex items-center gap-2 rounded-xl border border-line bg-white/[0.03] px-3.5 py-2.5 text-sm text-fg-2">

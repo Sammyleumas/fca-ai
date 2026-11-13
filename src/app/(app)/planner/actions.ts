@@ -74,14 +74,14 @@ export async function createPlan(form: PlanInputForm): Promise<Result> {
   const input = parsed.data;
 
   const supabase = await createClient();
-  const { plan } = await getShellData(user.id);
+  const { tier } = await getShellData(user.id);
   const { count } = await supabase
     .from("study_plans")
     .select("id", { count: "exact", head: true })
     .eq("user_id", user.id)
     .eq("status", "active");
-  if ((count ?? 0) >= limitsFor(plan).activeStudyPlans) {
-    return { ok: false, error: `Your plan allows ${limitsFor(plan).activeStudyPlans} active study plans. Archive one first.` };
+  if ((count ?? 0) >= limitsFor(tier).activeStudyPlans) {
+    return { ok: false, error: `Your plan allows ${limitsFor(tier).activeStudyPlans} active study plans. Archive one first.` };
   }
 
   const computed = await computePlan(user.id, input);

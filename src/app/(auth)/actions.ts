@@ -127,3 +127,54 @@ export async function signInWithProvider(formData: FormData) {
   if (error || !data.url) redirect(`/login?error=oauth_unavailable`);
   redirect(data.url);
 }
+
+/**
+ * "Continue as guest": a real but anonymous Supabase account (is_anonymous claim).
+ * Everything stays private to this browser session under RLS; the guest can later
+ * save the account with an email and password and keep all their work.
+ */
+export async function continueAsGuest(_prev: AuthState, formData: FormData): Promise<AuthState> {
+  void formData;
+  const supabase = await createClient();
+  // Already in a session (guest or not)? Reuse it rather than creating another guest.
+  const { data: current } = await supabase.auth.getClaims();
+  if (current?.claims?.sub) redirect("/dashboard");
+  const { error } = await supabase.auth.signInAnonymously();
+  if (error) {
+    return {
+      error:
+        error.status === 429
+          ? "Too many guest sessions from this network. Please try again later or create a free account."
+          : error.code === "anonymous_provider_disabled" || /anonymous/i.test(error.message)
+            ? "Guest access isn't available right now. Please create a free account instead."
+            : "We couldn't start a guest session. Please try again.",
+    };
+  }
+  redirect("/onboarding");
+}
+
+/** Step 1 of saving a guest account: attach an email (verified by link), then choose a password. */
+export async function saveGuestAccount(_prev: AuthState, formData: FormData): Promise<AuthState> {
+  const parsed = forgotSchema.safeParse(Object.fromEntries(formData));
+  if (!parsed.success) return { fields: fieldErrors(parsed.error), values: values(formData, ["email"]) };
+  const supabase = await createClient();
+  const { data } = await supabase.auth.getClaims();
+  if (!data?.claims) redirect("/login");
+  if (data.claims.is_anonymous !== true) redirect("/settings");
+  const { error } = await supabase.auth.updateUser(
+    { email: parsed.data.email },
+    { emailRedirectTo: `${await siteUrl()}/auth/confirm?next=${encodeURIComponent("/reset-password?saved=1")}` },
+  );
+  if (error) {
+    return {
+      error:
+        error.code === "email_exists" || /already/i.test(error.message)
+          ? "That email already has an FCA-AI account. Sign in to it instead (your guest work stays in this guest session)."
+          : error.status === 429
+            ? "Too many attempts. Please wait a minute and try again."
+            : "We couldn't send the confirmation email. Please try again.",
+      values: values(formData, ["email"]),
+    };
+  }
+  return { success: `Check ${parsed.data.email} — open the link we sent to confirm it, then choose a password. Keep this tab open until you do.` };
+}

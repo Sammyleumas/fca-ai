@@ -39,7 +39,7 @@ export async function asSuperuser<T>(fn: (c: PoolClient) => Promise<T>): Promise
  * unless `commit` is true, so tests stay isolated.
  */
 export async function asRole<T>(
-  role: "authenticated" | "anon",
+  role: "authenticated" | "anon" | "service_role",
   userId: string | null,
   fn: (c: PoolClient) => Promise<T>,
   { commit = false }: { commit?: boolean } = {},

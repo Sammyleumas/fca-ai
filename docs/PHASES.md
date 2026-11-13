@@ -1,6 +1,8 @@
 # FCA-AI build phases
 
 > Renamed from MindFlow to **FCA-AI** with the FCA-AI palette (royal blue #0000A1, sky #00BFFF, yellow #FFEB3B, black, white) and the shield-and-rings logo.
+>
+> **Guest access:** "Continue as guest" on the welcome, sign-in and sign-up pages opens the full app without an account (Supabase anonymous sign-in). Guests see a banner to save their account (email link → choose a password) and keep all their work.
 
 Status legend: ✅ done & tested · 🟡 partial · ⏳ not started
 

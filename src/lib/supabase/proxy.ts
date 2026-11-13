@@ -29,6 +29,8 @@ export async function updateSession(request: NextRequest) {
   // Must run before any response is produced so refreshed tokens are persisted.
   const { data } = await supabase.auth.getClaims();
   const signedIn = Boolean(data?.claims?.sub);
+  // Guests (anonymous sessions) may still open the welcome, sign-in and sign-up pages.
+  const isGuest = data?.claims?.is_anonymous === true;
   const { pathname, search } = request.nextUrl;
 
   const redirect = (to: string) => {
@@ -44,7 +46,7 @@ export async function updateSession(request: NextRequest) {
   if (!signedIn && !isPublicRoute(pathname) && !pathname.startsWith("/api/")) {
     return redirect(`/login?next=${encodeURIComponent(pathname + search)}`);
   }
-  if (signedIn && (isAuthRoute(pathname) || pathname === "/")) {
+  if (signedIn && !isGuest && (isAuthRoute(pathname) || pathname === "/")) {
     return redirect("/dashboard");
   }
   return response;

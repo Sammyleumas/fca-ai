@@ -6,7 +6,8 @@ import { createClient } from "@/lib/supabase/server";
 import { isSupabaseConfigured } from "@/lib/env";
 import type { ProfileRow } from "@/types/db";
 
-export type SessionUser = { id: string; email: string | null };
+/** `isGuest`: signed in anonymously ("Continue as guest") — no email or password yet. */
+export type SessionUser = { id: string; email: string | null; isGuest: boolean };
 
 /**
  * Data Access Layer: verifies the session JWT (signature + expiry) via getClaims().
@@ -20,7 +21,11 @@ export const getSessionUser = cache(async (): Promise<SessionUser | null> => {
   const supabase = await createClient();
   const { data, error } = await supabase.auth.getClaims();
   if (error || !data?.claims?.sub) return null;
-  return { id: data.claims.sub, email: (data.claims.email as string | undefined) ?? null };
+  return {
+    id: data.claims.sub,
+    email: (data.claims.email as string | undefined) || null,
+    isGuest: data.claims.is_anonymous === true,
+  };
 });
 
 export async function requireUser(): Promise<SessionUser> {

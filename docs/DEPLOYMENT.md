@@ -18,7 +18,12 @@
    the buttons show a friendly error until a provider is configured.
 5. **Auth → Emails** (optional): the default templates work (PKCE `code` flow). To use the `token_hash` flow, point
    links at `{{ .SiteURL }}/auth/confirm?token_hash={{ .TokenHash }}&type=email` (recovery: `type=recovery`).
-6. Configure a custom SMTP provider before launch (Supabase's built-in mailer is rate-limited): **Auth → SMTP
+6. **Guest access ("Continue as guest")**: Authentication → Sign In / Providers → turn on **Allow anonymous sign-ins**.
+   Strongly recommended with it: Authentication → Attack Protection → enable CAPTCHA (e.g. Cloudflare Turnstile)
+   to limit automated guest sign-ups. Guests get smaller limits (2 materials, 10 AI messages/day) and can't pay
+   until they save their account with an email. Without this setting the guest button shows a friendly
+   "Guest access isn't available" message.
+7. Configure a custom SMTP provider before launch (Supabase's built-in mailer is rate-limited): **Auth → SMTP
    settings**. With Resend: host `smtp.resend.com`, port `465`, user `resend`, password = your Resend API key,
    sender = an address on your verified domain.
 
@@ -34,7 +39,7 @@
 4. **Background processing.** Processing starts automatically after each upload and continues while a student
    has the library open. For processing that also continues when nobody is online, schedule the worker:
    - Vercel Pro: add `vercel.json` with
-     `{"crons": [{"path": "/api/jobs/process", "schedule": "* * * * *"}, {"path": "/api/jobs/notifications", "schedule": "5 * * * *"}]}` — Vercel sends
+     `{"crons": [{"path": "/api/jobs/process", "schedule": "* * * * *"}, {"path": "/api/jobs/notifications", "schedule": "5 * * * *"}, {"path": "/api/jobs/cleanup-guests", "schedule": "17 3 * * *"}]}` — Vercel sends
      `Authorization: Bearer $CRON_SECRET` automatically.
    - Vercel Hobby (daily crons only) or elsewhere: call
      `curl -H "Authorization: Bearer $CRON_SECRET" https://<domain>/api/jobs/process` from any scheduler every minute.

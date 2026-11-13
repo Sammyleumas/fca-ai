@@ -37,10 +37,10 @@ export async function POST(request: NextRequest) {
 
   const { data: m } = await supabase.from("materials").select("id, title, status, page_count").eq("id", body.materialId).maybeSingle();
   if (!m || m.status !== "ready") return NextResponse.json({ error: "Material not ready." }, { status: 404 });
-  const { plan } = await getShellData(user.id);
+  const { tier } = await getShellData(user.id);
   const { count: existing } = await supabase.from("flashcards").select("id", { count: "exact", head: true }).eq("material_id", m.id).neq("origin", "manual");
-  const room = limitsFor(plan).flashcardsPerMaterial - (existing ?? 0);
-  if (room <= 0) return NextResponse.json({ error: `You've reached the ${limitsFor(plan).label} plan's AI flashcard limit for this material.` }, { status: 429 });
+  const room = limitsFor(tier).flashcardsPerMaterial - (existing ?? 0);
+  if (room <= 0) return NextResponse.json({ error: `You've reached the ${limitsFor(tier).label} plan's AI flashcard limit for this material.` }, { status: 429 });
 
   const { data: secs } = await supabase.from("document_sections").select("id, parent_id, level, position, title, start_page, end_page").eq("material_id", m.id).limit(5000);
   const all = (secs ?? []) as SectionRow[];

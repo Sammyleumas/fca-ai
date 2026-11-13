@@ -1,6 +1,7 @@
 import { createHmac } from "node:crypto";
 import { describe, expect, it } from "vitest";
 import { effectivePlan } from "@/lib/billing/entitlements";
+import { limitTier, limitsFor } from "@/lib/billing/plans";
 import { paystackEventToUpdate, stripeEventToUpdate, verifyPaystackSignature, verifyStripeSignature } from "@/lib/billing/webhooks";
 
 const now = new Date("2026-11-20T12:00:00Z");
@@ -60,5 +61,16 @@ describe("event mapping", () => {
     expect(paystackEventToUpdate({ event: "subscription.create", data: { subscription_code: "SUB_1", email_token: "tok", status: "active", next_payment_date: "2026-12-20T00:00:00Z", customer: { customer_code: "CUS_1" }, plan: { plan_code: "PLN_1" } } })).toMatchObject({ subscriptionId: "SUB_1", emailToken: "tok", status: "active" });
     expect(paystackEventToUpdate({ event: "subscription.disable", data: { subscription_code: "SUB_1" } })).toMatchObject({ status: "cancelled" });
     expect(paystackEventToUpdate({ event: "subscription.not_renew", data: { subscription_code: "SUB_1" } })).toMatchObject({ cancelAtPeriodEnd: true });
+  });
+});
+
+
+describe("guest limits", () => {
+  it("gives guests their own, smaller limits regardless of plan", () => {
+    expect(limitTier("free", true)).toBe("guest");
+    expect(limitTier("premium", true)).toBe("guest");
+    expect(limitTier("free", false)).toBe("free");
+    expect(limitsFor("guest").aiMessagesPerDay).toBeLessThan(limitsFor("free").aiMessagesPerDay);
+    expect(limitsFor("guest").maxMaterials).toBeLessThan(limitsFor("free").maxMaterials);
   });
 });

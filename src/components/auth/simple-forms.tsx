@@ -5,6 +5,7 @@ import { Lock, Mail } from "lucide-react";
 import {
   requestPasswordReset,
   resendVerification,
+  saveGuestAccount,
   updatePassword,
   type AuthState,
 } from "@/app/(auth)/actions";
@@ -84,6 +85,30 @@ export function ResendVerificationForm({ email }: { email?: string }) {
         required
       />
       <SubmitButton arrow={false}>Resend verification email</SubmitButton>
+    </form>
+  );
+}
+
+export function SaveGuestAccountForm() {
+  const [state, action] = useActionState<AuthState, FormData>(saveGuestAccount, {});
+  return (
+    <form action={action} className="space-y-4" noValidate>
+      <FormMessage>{state.error}</FormMessage>
+      <FormMessage tone="success">{state.success}</FormMessage>
+      <TextField
+        label="Email address"
+        name="email"
+        type="email"
+        autoComplete="email"
+        placeholder="you@example.com"
+        icon={<Mail className="size-[18px]" />}
+        defaultValue={state.values?.email}
+        error={state.fields?.email}
+        required
+      />
+      <div className="pt-1">
+        <SubmitButton>Send confirmation link</SubmitButton>
+      </div>
     </form>
   );
 }

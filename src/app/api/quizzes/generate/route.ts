@@ -58,11 +58,11 @@ export async function POST(request: NextRequest) {
     if (e instanceof AIError) return NextResponse.json({ error: e.message }, { status: e.code === "not_configured" ? 503 : 429 });
     return NextResponse.json({ error: "The quiz generator is unavailable right now." }, { status: 503 });
   }
-  const { plan } = await getShellData(user.id);
+  const { tier } = await getShellData(user.id);
   const since = new Date(Date.now() - 86_400_000).toISOString();
   const { count: recent } = await supabase.from("quizzes").select("id", { count: "exact", head: true }).eq("user_id", user.id).neq("status", "failed").gte("created_at", since);
-  if ((recent ?? 0) >= limitsFor(plan).quizzesPerDay) {
-    return NextResponse.json({ error: `You've reached today's limit of ${limitsFor(plan).quizzesPerDay} AI quizzes on the ${limitsFor(plan).label} plan.` }, { status: 429 });
+  if ((recent ?? 0) >= limitsFor(tier).quizzesPerDay) {
+    return NextResponse.json({ error: `You've reached today's limit of ${limitsFor(tier).quizzesPerDay} AI quizzes on the ${limitsFor(tier).label} plan.` }, { status: 429 });
   }
 
   let ranges: SourceRange[] = [];

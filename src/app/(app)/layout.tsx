@@ -4,10 +4,10 @@ import { getShellData } from "@/lib/data/shell";
 
 export default async function AppLayout({ children }: LayoutProps<"/">) {
   const { user, profile } = await requireOnboardedUser();
-  const { unread, plan } = await getShellData(user.id);
-  const name = profile.full_name || displayName(profile, user.email);
+  const { unread, plan, isGuest } = await getShellData(user.id);
+  const name = profile.full_name || displayName(profile, user.email) || (isGuest ? "Guest" : "");
   return (
-    <AppFrame name={name} avatarUrl={profile.avatar_url} plan={plan} unread={unread}>
+    <AppFrame name={name} avatarUrl={profile.avatar_url} plan={plan} unread={unread} isGuest={isGuest}>
       {children}
     </AppFrame>
   );

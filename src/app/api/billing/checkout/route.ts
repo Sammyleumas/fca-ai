@@ -15,6 +15,7 @@ const schema = z.object({ provider: z.enum(["stripe", "paystack"]), interval: z.
 export async function POST(request: NextRequest) {
   const user = await getSessionUser();
   if (!user) return NextResponse.json({ error: "Please sign in again." }, { status: 401 });
+  if (user.isGuest) return NextResponse.json({ error: "Save your account with an email before upgrading." }, { status: 403 });
   const parsed = schema.safeParse(await request.json().catch(() => null));
   if (!parsed.success) return NextResponse.json({ error: "Invalid request." }, { status: 400 });
   const provider = billingProviders().find((p) => p.id === parsed.data.provider);
