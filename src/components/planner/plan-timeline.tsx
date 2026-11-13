@@ -49,7 +49,9 @@ export function PlanTimeline({ plan, today }: { plan: PlanDetail; today: string 
                         {open && s.kind !== "assessment" && plan.status === "active" && <MoveSessionButton sessionId={s.id} date={s.scheduled_date} today={today} />}
                       </div>
                       {s.kind === "assessment" ? (
-                        <p className="ml-6 mt-1 text-xs text-muted">AI quizzes on the day&apos;s topics arrive in the assessment phase.</p>
+                        <Link href={`/planner/sessions/${s.id}`} className="ml-6 mt-1 inline-block text-xs font-medium text-accent hover:underline">
+                            {s.status === "completed" ? "Quiz done · review" : "Take the quiz →"}
+                          </Link>
                       ) : (
                         <ul className="mt-2 space-y-2">
                           {s.tasks.map((t) => (

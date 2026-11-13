@@ -2,7 +2,7 @@
 
 Status legend: ✅ done & tested · 🟡 partial · ⏳ not started
 
-Current: **Phase 4 complete** · next: Phase 5 (Learning assessment).
+Current: **Phase 5 complete** · next: Phase 6 (Engagement).
 
 ## Phase 1 — Foundation ✅
 
@@ -91,9 +91,23 @@ against your Supabase project before launch.
 
 **Bugs found and fixed while testing:** hydration mismatch from detecting speech support during render; preferences menu hidden behind the side panel; floating toolbar and toasts unreadable over white PDF pages.
 
-## Phase 5 — Learning assessment ⏳
-Daily quizzes from assigned sections, all question types, timer, server-side grading (AI for open answers),
-results & review (via `get_attempt_review`), retries, flashcards with spaced repetition.
+## Phase 5 — Learning assessment ✅
+
+| Area | Status | Notes |
+|---|---|---|
+| Daily quizzes | ✅ | Each study day's assessment session generates a quiz from **exactly the sections assigned that day** (including rescheduled tasks). One live daily quiz per session; retries reuse it; failed generation can be retried. Completing it completes the session (streak credit). |
+| Practice quizzes & mock exams | ✅ | From a material (optionally chosen chapters) or from a study plan (prefers what's been studied). Choose count, question types and timing. Plan quota: AI quizzes per day. |
+| Question types | ✅ | Multiple choice, true/false, fill in the blank, short answer, theory. |
+| No unsupported facts | ✅ | Questions are generated only from page excerpts; each must cite a page that was actually provided or it is discarded; malformed/duplicate questions are dropped. Excerpts are delimited as untrusted data. |
+| Quiz experience | ✅ | Question X of N, countdown with auto-submit, previous/next, question navigator showing answered items, local draft that survives refreshes, submission confirmation (warns about unanswered questions). |
+| Server-side marking | ✅ | Correct answers are never readable by the student's role (column grants) until submission. Objective questions are marked deterministically (fill-in answers normalised: case, accents, articles, punctuation, thousands separators). Short/theory answers are AI-marked against a model answer and key points in half-mark steps; if AI marking fails the answer is shown as "not marked" and excluded from the score — never guessed. Double submits can't grade twice. |
+| Results | ✅ | Score, percentage, correct / incorrect / not marked, time, late flag, per-topic mastery (mastered ≥ 80 %, revise < 60 %), recommended next steps (re-read weak sections at their page, review mistake flashcards, retry), full review with your answer, correct/model answer, feedback, explanation and source page link. History and retries. |
+| Flashcards | ✅ | Generated from materials (validated source pages, per-plan limits), created automatically from every quiz mistake (one per question), or written manually; edit, pause, delete, search, decks per material. |
+| Spaced repetition | ✅ | Difficult (back in 10 min and again this session), Need practice (tomorrow), Know it (1 → 3 → interval × ease days). Scheduling is computed on the server and saved atomically with the review log (`review_flashcard`). Reviews earn a little XP. |
+
+**Tests added:** question validation, objective marking & normalisation, attempt summaries, spaced-repetition schedule (unit); one daily quiz per session, atomic/clamped/owner-only flashcard review, one mistake card per question (database). Quiz runner, results and flashcard review exercised in a real browser (dev preview with mocked actions).
+
+**Bugs found and fixed while testing:** "1,000" vs "1000" in fill-in marking; quiz drafts lost on refresh (effect ordering); a partial unique index that PostgREST upserts can't target; a PostgREST embed alias; mobile button layout.
 
 ## Phase 6 — Engagement ⏳
 Scheduled reminders (time-zone aware), analytics pages, weekly goals & challenges, monthly reports.

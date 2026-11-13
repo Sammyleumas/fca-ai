@@ -4,6 +4,8 @@ import { notFound } from "next/navigation";
 import { z } from "zod";
 import { ArrowLeft, BotMessageSquare, Target } from "lucide-react";
 import { TaskRow } from "@/components/planner/task-row";
+import { DailyQuizButton } from "@/components/assessments/quiz-launchers";
+import { isAIConfigured } from "@/lib/ai";
 import { FormMessage } from "@/components/ui/feedback";
 import { CardHeader, GlassCard } from "@/components/ui/glass-card";
 import { requireOnboardedUser } from "@/lib/auth/dal";
@@ -26,6 +28,14 @@ export default async function SessionPage({ params }: PageProps<"/planner/sessio
   if (!plan || !session) notFound();
   const today = localDateISO(profile.timezone);
   const first = session.tasks.find((t) => t.status !== "completed" && t.material_id);
+  const { data: dailyQuiz } = await supabase
+    .from("quizzes")
+    .select("id, status")
+    .eq("session_id", session.id)
+    .eq("kind", "daily")
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
 
   return (
     <div className="mx-auto max-w-3xl space-y-5">
@@ -54,7 +64,16 @@ export default async function SessionPage({ params }: PageProps<"/planner/sessio
       )}
 
       {session.kind === "assessment" ? (
-        <FormMessage tone="info">AI-generated quizzes on this day&apos;s topics arrive in the assessment build phase.</FormMessage>
+        dailyQuiz?.status === "ready" ? (
+          <Link href={`/assessments/${dailyQuiz.id}`} className="focus-ring glass flex items-center justify-between gap-3 rounded-2xl p-4 hover:border-accent/40">
+            <span className="text-sm font-semibold">{session.status === "completed" ? "Quiz completed — review or retry" : "Your daily quiz is ready"}</span>
+            <span className="text-sm text-accent">Open →</span>
+          </Link>
+        ) : isAIConfigured() ? (
+          <DailyQuizButton sessionId={session.id} label={dailyQuiz?.status === "failed" ? "Try generating the quiz again" : "Start daily quiz"} />
+        ) : (
+          <FormMessage tone="info">AI quizzes aren&apos;t configured on this server yet.</FormMessage>
+        )
       ) : (
         <GlassCard className="p-5">
           <CardHeader title="Tasks" />
