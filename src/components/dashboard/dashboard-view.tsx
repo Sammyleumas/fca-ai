@@ -41,7 +41,7 @@ export function DashboardView({
   const continueHref = nextTask
     ? `/planner/sessions/${nextTask.sessionId}`
     : recent[0]?.status === "ready"
-      ? `/library/${recent[0].id}`
+      ? `/reader/${recent[0].id}`
       : stats.materials_total > 0
         ? "/planner/new"
         : "/library?upload=1";

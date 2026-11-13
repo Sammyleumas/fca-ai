@@ -163,7 +163,7 @@ export function TutorChat({
                             {m.citations.map((c) => (
                               <li key={c.n}>
                                 <Link
-                                  href={`/library/${c.materialId}`}
+                                  href={`/reader/${c.materialId}?page=${c.page}`}
                                   className="focus-ring inline-flex items-center gap-1.5 rounded-full border border-accent/30 bg-accent/10 px-2.5 py-1 text-[11px] text-fg hover:border-accent/60"
                                 >
                                   <BookOpenText className="size-3 text-accent" aria-hidden="true" />

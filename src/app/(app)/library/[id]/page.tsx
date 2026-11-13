@@ -183,6 +183,11 @@ export default async function MaterialPage({ params }: PageProps<"/library/[id]"
             {m.plans.length ? `In plan: ${m.plans.map((p) => p.title).join(", ")}` : "Not in a study plan yet."}
           </p>
         </div>
+        {m.status === "ready" && (
+          <Link href={`/reader/${m.id}`} className="focus-ring inline-flex h-11 items-center gap-2 rounded-full bg-accent px-5 text-sm font-semibold text-[#0b0c0b] hover:bg-[#e2ff63]">
+            <BookOpenText className="size-4" aria-hidden="true" /> Read
+          </Link>
+        )}
         <Link href={`/tutor?material=${m.id}`} className="focus-ring glass inline-flex h-11 items-center gap-2 rounded-full px-5 text-sm font-semibold hover:bg-white/10">
           <Sparkles className="size-4" aria-hidden="true" /> Ask AI about it
         </Link>

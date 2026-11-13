@@ -2,7 +2,7 @@
 
 Status legend: ✅ done & tested · 🟡 partial · ⏳ not started
 
-Current: **Phase 3 complete** · next: Phase 4 (Reading experience).
+Current: **Phase 4 complete** · next: Phase 5 (Learning assessment).
 
 ## Phase 1 — Foundation ✅
 
@@ -72,9 +72,24 @@ against your Supabase project before launch.
 
 **Not verified here:** live AI segmentation / tutor quality (no API key in the sandbox).
 
-## Phase 4 — Reading experience ⏳
-PDF.js reader, TOC & search, zoom/fullscreen/focus mode, highlights, notes, bookmarks, resume position, reading
-progress & time tracking, AI passage tools, text-to-speech.
+## Phase 4 — Reading experience ✅
+
+| Area | Status | Notes |
+|---|---|---|
+| Original document rendering | ✅ | PDFs render from the original file with PDF.js (canvas + selectable text layer, HiDPI, lazy pages that free memory when far away, signed URL with range requests). DOCX/TXT render their extracted pages (formatting simplified, labelled "estimated" page numbers). Full-screen route without app chrome, like the design. |
+| Navigation | ✅ | Previous/next, go-to-page, keyboard (←/→, PgUp/PgDn, j/k, Esc), table of contents with nested sections and per-section "read" ticks, current section in the header, search within the document (server-side literal search with snippets; matches highlighted in text documents). |
+| Reading preferences | ✅ | Zoom (PDF), "dark pages" for PDFs, font size, line spacing, Dark / Sepia / Light themes (text), focus mode, fullscreen, read-aloud speed — saved to the profile. |
+| Highlights | ✅ | Six colours, change colour, delete, note on a highlight, explain a highlight. Anchors are zoom-proof (normalised rects on PDFs, character offsets on text pages) and validated server-side. |
+| Notes & bookmarks | ✅ | Notes on a page or highlight (create / edit / delete), searchable list of highlights and notes, bookmarks per page. |
+| Copy | ✅ | Copy selected text. |
+| AI reading assistant | ✅ | On any selection: Explain simply, Summarise, Give an example, Practice questions, Explain difficult terms, Ask a question. Without a selection: summarise the current section, explain the page. The server always loads the page context itself (document text treated as untrusted), responses stream into a panel clearly labelled "AI · not part of your document", with a link to continue in the grounded AI Tutor. Metered against the plan's daily AI limit. |
+| Text-to-speech | ✅ | Browser speech synthesis (on-device), sentence-chunked, pause/resume/stop, adjustable speed, continues onto the next page. |
+| Progress | ✅ | Current page and position saved every 20 s and on tab close (sendBeacon); a page counts as read after 8 s of active viewing; active time only (visible tab + recent interaction or read-aloud). `save_reading_progress()` merges pages atomically, computes % and completed sections, caps time per save, and turns whole minutes into reading activity (XP, no streak). Resume exactly where you stopped. |
+| Planner integration | ✅ | Study tasks open the reader at their pages with a "Today's task" bar and "Mark task complete"; tutor citations open the cited page; "Continue reading" list at /reader. |
+
+**Tests added:** anchors, rect merging, text segmentation, snippets, active-time tracker (unit); `save_reading_progress` merge / percent / sections / time cap / activity / isolation (database). The Reading Room was exercised in a real browser (dev preview with a mock API): PDF rendering, drag selection on the text layer, highlight overlay, AI panel, navigation & section tracking, mobile layout, themes and font size.
+
+**Bugs found and fixed while testing:** hydration mismatch from detecting speech support during render; preferences menu hidden behind the side panel; floating toolbar and toasts unreadable over white PDF pages.
 
 ## Phase 5 — Learning assessment ⏳
 Daily quizzes from assigned sections, all question types, timer, server-side grading (AI for open answers),

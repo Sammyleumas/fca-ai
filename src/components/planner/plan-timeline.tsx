@@ -53,7 +53,7 @@ export function PlanTimeline({ plan, today }: { plan: PlanDetail; today: string 
                       ) : (
                         <ul className="mt-2 space-y-2">
                           {s.tasks.map((t) => (
-                            <TaskRow key={t.id} task={t} readHref={t.material_id ? `/library/${t.material_id}` : undefined} disabled={plan.status !== "active"} />
+                            <TaskRow key={t.id} task={t} readHref={t.material_id ? `/reader/${t.material_id}?task=${t.id}` : undefined} disabled={plan.status !== "active"} />
                           ))}
                         </ul>
                       )}

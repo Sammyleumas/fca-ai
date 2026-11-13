@@ -60,10 +60,9 @@ export default async function SessionPage({ params }: PageProps<"/planner/sessio
           <CardHeader title="Tasks" />
           <ul className="mt-3 space-y-2">
             {session.tasks.map((t) => (
-              <TaskRow key={t.id} task={t} readHref={t.material_id ? `/library/${t.material_id}` : undefined} disabled={plan.status !== "active" || session.status === "rescheduled"} />
+              <TaskRow key={t.id} task={t} readHref={t.material_id ? `/reader/${t.material_id}?task=${t.id}` : undefined} disabled={plan.status !== "active" || session.status === "rescheduled"} />
             ))}
           </ul>
-          <p className="mt-3 text-xs text-muted">The full Reading Room arrives in the next phase; for now the read button opens the material with its preview.</p>
         </GlassCard>
       )}
 

@@ -109,3 +109,52 @@ body {
     scroll-behavior: auto !important;
   }
 }
+
+/* ---------------------------------------------------------------------------
+ * Reading Room: minimal PDF.js text layer (selectable, invisible text over the
+ * rendered canvas) and highlight marks. --total-scale-factor is set per page.
+ * ------------------------------------------------------------------------- */
+.pdf-page .textLayer {
+  position: absolute;
+  inset: 0;
+  overflow: clip;
+  line-height: 1;
+  text-align: initial;
+  transform-origin: 0 0;
+  z-index: 2;
+  --min-font-size: 1;
+  --text-scale-factor: calc(var(--total-scale-factor) * var(--min-font-size));
+  --min-font-size-inv: calc(1 / var(--min-font-size));
+}
+.pdf-page .textLayer :is(span, br) {
+  color: transparent;
+  position: absolute;
+  white-space: pre;
+  cursor: text;
+  transform-origin: 0% 0%;
+}
+.pdf-page .textLayer > :not(.markedContent),
+.pdf-page .textLayer .markedContent span:not(.markedContent) {
+  --font-height: 0;
+  font-size: calc(var(--text-scale-factor) * var(--font-height));
+  --scale-x: 1;
+  --rotate: 0deg;
+  transform: rotate(var(--rotate)) scaleX(var(--scale-x)) scale(var(--min-font-size-inv));
+}
+.pdf-page .textLayer .markedContent {
+  display: contents;
+}
+.pdf-page .textLayer ::selection {
+  background: rgba(214, 255, 53, 0.35);
+}
+.pdf-page .textLayer br::selection {
+  background: transparent;
+}
+.reader-dark-pdf .pdf-page canvas {
+  filter: invert(0.88) hue-rotate(180deg) contrast(0.95);
+}
+mark.mf-hl {
+  color: inherit;
+  border-radius: 2px;
+  padding: 0 1px;
+}
