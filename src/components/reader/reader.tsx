@@ -460,7 +460,7 @@ export function Reader({
           ) : (
             <button
               type="button"
-              className="focus-ring shrink-0 rounded-full bg-accent px-3 py-1.5 text-xs font-semibold text-[#0b0c0b]"
+              className="focus-ring shrink-0 rounded-full bg-accent px-3 py-1.5 text-xs font-semibold text-[#000000]"
               onClick={async () => {
                 const r = await api.completeTask(task.id);
                 if (!r.ok) return flash(r.error);
@@ -518,7 +518,7 @@ export function Reader({
                   type="button"
                   onClick={() => setPanel(p)}
                   aria-pressed={panel === p}
-                  className={cn("focus-ring flex-1 rounded-full px-2 py-1.5 text-xs font-medium capitalize", panel === p ? "bg-accent text-[#0b0c0b]" : "text-fg-2 hover:text-fg")}
+                  className={cn("focus-ring flex-1 rounded-full px-2 py-1.5 text-xs font-medium capitalize", panel === p ? "bg-accent text-[#000000]" : "text-fg-2 hover:text-fg")}
                 >
                   {p === "ai" ? "AI" : p}
                 </button>
@@ -570,7 +570,7 @@ export function Reader({
         </button>
         <div className="flex min-w-0 flex-1 items-center gap-3">
           <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-white/10" role="progressbar" aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.round(percent)} aria-label="Material progress">
-            <div className="h-full rounded-full bg-gradient-to-r from-accent-2 to-accent" style={{ width: `${Math.min(100, percent)}%` }} />
+            <div className="h-full rounded-full bg-gradient-to-r from-[#ffd600] to-accent" style={{ width: `${Math.min(100, percent)}%` }} />
           </div>
           <form
             className="hidden items-center gap-1 text-xs text-fg-2 sm:flex"
@@ -611,7 +611,7 @@ export function Reader({
 
       {/* Highlight menu */}
       {activeHl && (
-        <div data-hl-menu className="border border-line-strong bg-[#141615]/95 text-fg backdrop-blur-xl fixed z-50 flex items-center gap-1 rounded-full p-1.5 shadow-2xl" style={floatPos(activeHl.box)}>
+        <div data-hl-menu className="border border-line-strong bg-[#0D0D33]/95 text-fg backdrop-blur-xl fixed z-50 flex items-center gap-1 rounded-full p-1.5 shadow-2xl" style={floatPos(activeHl.box)}>
           {(Object.keys(HIGHLIGHT_COLORS) as HighlightColor[]).map((c) => (
             <button
               key={c}
@@ -662,14 +662,14 @@ export function Reader({
             />
             <div className="mt-3 flex justify-end gap-2">
               <button type="button" onClick={() => setNoteDraft(null)} className="focus-ring rounded-full px-4 py-2 text-sm text-fg-2 hover:text-fg">Cancel</button>
-              <button type="button" onClick={saveNoteDraft} disabled={!noteDraft.body.trim()} className="focus-ring rounded-full bg-accent px-4 py-2 text-sm font-semibold text-[#0b0c0b] disabled:opacity-50">Save note</button>
+              <button type="button" onClick={saveNoteDraft} disabled={!noteDraft.body.trim()} className="focus-ring rounded-full bg-accent px-4 py-2 text-sm font-semibold text-[#000000] disabled:opacity-50">Save note</button>
             </div>
           </div>
         </div>
       )}
 
       {toast && (
-        <div role="status" className="border border-line-strong bg-[#141615]/95 text-fg backdrop-blur-xl fixed bottom-20 left-1/2 z-50 -translate-x-1/2 rounded-full px-4 py-2 text-sm shadow-2xl">
+        <div role="status" className="border border-line-strong bg-[#0D0D33]/95 text-fg backdrop-blur-xl fixed bottom-20 left-1/2 z-50 -translate-x-1/2 rounded-full px-4 py-2 text-sm shadow-2xl">
           {toast}
         </div>
       )}
@@ -723,13 +723,13 @@ function SelectionToolbar({
       role="toolbar"
       aria-label="Selected text actions"
       onMouseDown={(e) => e.preventDefault()} // keep the selection
-      className="border border-line-strong bg-[#141615]/95 text-fg backdrop-blur-xl fixed inset-x-3 bottom-16 z-50 rounded-2xl p-1.5 shadow-2xl sm:inset-x-auto sm:bottom-auto sm:w-auto"
+      className="border border-line-strong bg-[#0D0D33]/95 text-fg backdrop-blur-xl fixed inset-x-3 bottom-16 z-50 rounded-2xl p-1.5 shadow-2xl sm:inset-x-auto sm:bottom-auto sm:w-auto"
       style={typeof window !== "undefined" && window.innerWidth >= 640 ? floatPos(box) : undefined}
     >
       <div className="flex items-center justify-around gap-0.5">
         <div className="flex items-center gap-1 px-1" aria-label="Highlight colours">
-          {(["lime", "yellow", "blue", "pink"] as HighlightColor[]).map((c) => (
-            <button key={c} type="button" onClick={() => onHighlight(c)} aria-label={`Highlight ${c}`} className="focus-ring size-6 rounded-full border border-white/20" style={{ background: HIGHLIGHT_COLORS[c].replace(/0\.\d+\)$/, "1)") }} />
+          {(["lime", "blue", "green", "pink"] as HighlightColor[]).map((c) => (
+            <button key={c} type="button" onClick={() => onHighlight(c)} aria-label={`Highlight ${c === "lime" ? "yellow" : c}`} className="focus-ring size-6 rounded-full border border-white/20" style={{ background: HIGHLIGHT_COLORS[c].replace(/0\.\d+\)$/, "1)") }} />
           ))}
         </div>
         <button type="button" className={btn} onClick={() => onHighlight("lime")}><Highlighter className="size-4" aria-hidden="true" /> Highlight</button>
@@ -789,7 +789,7 @@ function PrefsMenu({
           </div>
           <label className="flex items-center justify-between text-sm">
             <span className="text-fg-2">Dark pages</span>
-            <input type="checkbox" checked={prefs.dark_pdf} onChange={(e) => onChange({ dark_pdf: e.target.checked })} className="size-5 accent-[#D6FF35]" />
+            <input type="checkbox" checked={prefs.dark_pdf} onChange={(e) => onChange({ dark_pdf: e.target.checked })} className="size-5 accent-[#FFEB3B]" />
           </label>
         </>
       ) : (
@@ -804,7 +804,7 @@ function PrefsMenu({
           </div>
           <label className="block text-sm">
             <span className="flex justify-between text-fg-2">Line spacing <span className="font-semibold text-fg">{prefs.line_height.toFixed(1)}</span></span>
-            <input type="range" min={1.3} max={2.2} step={0.1} value={prefs.line_height} onChange={(e) => onChange({ line_height: Number(e.target.value) })} className="mt-2 w-full accent-[#D6FF35]" />
+            <input type="range" min={1.3} max={2.2} step={0.1} value={prefs.line_height} onChange={(e) => onChange({ line_height: Number(e.target.value) })} className="mt-2 w-full accent-[#FFEB3B]" />
           </label>
           <div className="text-sm">
             <span className="text-fg-2">Theme</span>
@@ -821,12 +821,12 @@ function PrefsMenu({
       {onTtsRate && (
         <label className="block text-sm">
           <span className="flex justify-between text-fg-2">Read-aloud speed <span className="font-semibold text-fg">{ttsRate.toFixed(1)}×</span></span>
-          <input type="range" min={0.6} max={1.8} step={0.1} value={ttsRate} onChange={(e) => onTtsRate(Number(e.target.value))} className="mt-2 w-full accent-[#D6FF35]" />
+          <input type="range" min={0.6} max={1.8} step={0.1} value={ttsRate} onChange={(e) => onTtsRate(Number(e.target.value))} className="mt-2 w-full accent-[#FFEB3B]" />
         </label>
       )}
       <label className="flex items-center justify-between text-sm">
         <span className="text-fg-2">Focus mode</span>
-        <input type="checkbox" checked={prefs.focus_mode} onChange={(e) => onChange({ focus_mode: e.target.checked })} className="size-5 accent-[#D6FF35]" />
+        <input type="checkbox" checked={prefs.focus_mode} onChange={(e) => onChange({ focus_mode: e.target.checked })} className="size-5 accent-[#FFEB3B]" />
       </label>
     </div>
   );
@@ -908,7 +908,7 @@ function NotesPanel({
       <div className="flex gap-2">
         <label htmlFor="notes-q" className="sr-only">Search highlights and notes</label>
         <input id="notes-q" value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search highlights & notes…" className="h-10 min-w-0 flex-1 rounded-full border border-line bg-white/[0.04] px-4 text-sm outline-none focus:border-accent/60" />
-        <button type="button" onClick={onNewNote} className="focus-ring flex h-10 shrink-0 items-center gap-1 rounded-full bg-accent px-3 text-xs font-semibold text-[#0b0c0b]"><Plus className="size-3.5" aria-hidden="true" /> Note</button>
+        <button type="button" onClick={onNewNote} className="focus-ring flex h-10 shrink-0 items-center gap-1 rounded-full bg-accent px-3 text-xs font-semibold text-[#000000]"><Plus className="size-3.5" aria-hidden="true" /> Note</button>
       </div>
       {!items.length && <p className="px-1 text-sm text-fg-2">{query ? "Nothing matches." : "Select text to highlight it or add a note."}</p>}
       <ul className="space-y-2">
@@ -989,7 +989,7 @@ function SearchPanel({ materialId, api, onGo, term, setTerm }: { materialId: str
       >
         <label htmlFor="doc-search" className="sr-only">Search in document</label>
         <input id="doc-search" autoFocus value={term} onChange={(e) => setTerm(e.target.value)} placeholder="Search this document…" className="h-10 min-w-0 flex-1 rounded-full border border-line bg-white/[0.04] px-4 text-sm outline-none focus:border-accent/60" />
-        <button type="submit" className="focus-ring flex size-10 shrink-0 items-center justify-center rounded-full bg-accent text-[#0b0c0b]" aria-label="Search">
+        <button type="submit" className="focus-ring flex size-10 shrink-0 items-center justify-center rounded-full bg-accent text-[#000000]" aria-label="Search">
           {loading ? <Loader2 className="size-4 animate-spin" /> : <Search className="size-4" />}
         </button>
       </form>
@@ -1055,7 +1055,7 @@ function AiPanel({
             >
               <label htmlFor="ask-passage" className="sr-only">Your question about this passage</label>
               <input id="ask-passage" autoFocus value={q} onChange={(e) => setQ(e.target.value)} placeholder="Ask about this passage…" className="h-10 min-w-0 flex-1 rounded-full border border-line bg-white/[0.04] px-4 text-sm outline-none focus:border-accent/60" />
-              <button type="submit" className="focus-ring rounded-full bg-accent px-4 text-xs font-semibold text-[#0b0c0b]">Ask</button>
+              <button type="submit" className="focus-ring rounded-full bg-accent px-4 text-xs font-semibold text-[#000000]">Ask</button>
             </form>
           ) : ai.text ? (
             <div className="text-sm text-fg/90"><RichText text={ai.text} /></div>

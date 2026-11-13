@@ -138,7 +138,7 @@ export function LearningForm({ profile }: { profile: ProfileRow }) {
           <div className="grid gap-2 sm:grid-cols-2">
             {[...new Set([...LEARNING_GOALS, ...profile.learning_goals])].map((g) => (
               <label key={g} className="flex items-center gap-3 rounded-xl border border-line bg-white/[0.03] px-3.5 py-2.5 text-sm">
-                <input type="checkbox" name="learning_goals" value={g} defaultChecked={profile.learning_goals.includes(g)} className="size-4 accent-[#D6FF35]" />
+                <input type="checkbox" name="learning_goals" value={g} defaultChecked={profile.learning_goals.includes(g)} className="size-4 accent-[#FFEB3B]" />
                 {g}
               </label>
             ))}
@@ -167,7 +167,7 @@ export function NotificationsForm({ prefs }: { prefs: NotificationPrefs }) {
         <Messages state={state} />
         <label className="flex items-center justify-between gap-4 rounded-xl border border-line bg-white/[0.03] px-4 py-3 text-sm">
           Daily study reminder
-          <input type="checkbox" name="daily_reminder" checked={daily} onChange={(e) => setDaily(e.target.checked)} className="size-5 accent-[#D6FF35]" />
+          <input type="checkbox" name="daily_reminder" checked={daily} onChange={(e) => setDaily(e.target.checked)} className="size-5 accent-[#FFEB3B]" />
         </label>
         {daily && (
           <TextField label="Reminder time (your time zone)" name="reminder_time" type="time" defaultValue={prefs.reminder_time} error={state.fields?.reminder_time} />
@@ -175,7 +175,7 @@ export function NotificationsForm({ prefs }: { prefs: NotificationPrefs }) {
         {rows.map(({ key, label }) => (
           <label key={key} className="flex items-center justify-between gap-4 rounded-xl border border-line bg-white/[0.03] px-4 py-3 text-sm">
             {label}
-            <input type="checkbox" name={key} defaultChecked={Boolean(prefs[key])} className="size-5 accent-[#D6FF35]" />
+            <input type="checkbox" name={key} defaultChecked={Boolean(prefs[key])} className="size-5 accent-[#FFEB3B]" />
           </label>
         ))}
         <Button type="submit" loading={pending} className="mt-2"><Save className="size-4" aria-hidden="true" /> Save notifications</Button>
@@ -210,7 +210,7 @@ export function DataForm() {
         <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-line bg-white/[0.03] p-4">
           <div>
             <p className="font-medium">Export your data</p>
-            <p className="text-sm text-fg-2">Download everything MindFlow stores about you as JSON.</p>
+            <p className="text-sm text-fg-2">Download everything FCA-AI stores about you as JSON.</p>
           </div>
           <a href="/api/account/export" className="focus-ring glass inline-flex h-10 items-center gap-2 rounded-full px-4 text-sm font-semibold hover:bg-white/10">
             <Download className="size-4" aria-hidden="true" /> Export

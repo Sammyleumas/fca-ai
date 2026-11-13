@@ -115,7 +115,7 @@ export function PlanWizard({
               }}
               className={cn(
                 "focus-ring h-12 rounded-full text-sm font-semibold transition",
-                mode === m ? "bg-accent text-[#0b0c0b] shadow-[0_8px_24px_-10px_rgba(214,255,53,0.7)]" : "glass text-fg-2 hover:text-fg",
+                mode === m ? "bg-accent text-[#000000] shadow-[0_8px_24px_-10px_rgba(255,235,59,0.7)]" : "glass text-fg-2 hover:text-fg",
               )}
             >
               {m === "individual" ? "Individual" : "Combined"}
@@ -150,7 +150,7 @@ export function PlanWizard({
                         {m.subject ? ` · ${m.subject}` : ""}
                       </span>
                     </span>
-                    <span className={cn("flex size-6 shrink-0 items-center justify-center rounded-full border", on ? "border-accent bg-accent text-[#0b0c0b]" : "border-line-strong")}>
+                    <span className={cn("flex size-6 shrink-0 items-center justify-center rounded-full border", on ? "border-accent bg-accent text-[#000000]" : "border-line-strong")}>
                       {on && <Check className="size-3.5" strokeWidth={3} aria-hidden="true" />}
                     </span>
                   </button>
@@ -190,7 +190,7 @@ export function PlanWizard({
               step={15}
               value={form.dailyMinutes}
               onChange={(e) => set("dailyMinutes", Number(e.target.value))}
-              className="w-full accent-[#D6FF35]"
+              className="w-full accent-[#FFEB3B]"
             />
           </label>
           <fieldset>
@@ -204,7 +204,7 @@ export function PlanWizard({
                     type="button"
                     aria-pressed={on}
                     onClick={() => set("studyDays", on ? form.studyDays.filter((x) => x !== d.v) : [...form.studyDays, d.v])}
-                    className={cn("focus-ring h-10 rounded-xl text-xs font-semibold", on ? "bg-accent text-[#0b0c0b]" : "glass text-fg-2")}
+                    className={cn("focus-ring h-10 rounded-xl text-xs font-semibold", on ? "bg-accent text-[#000000]" : "glass text-fg-2")}
                   >
                     {d.l}
                   </button>

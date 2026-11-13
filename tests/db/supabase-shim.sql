@@ -1,4 +1,4 @@
--- Minimal stand-in for the parts of Supabase that MindFlow's migrations depend on,
+-- Minimal stand-in for the parts of Supabase that FCA-AI's migrations depend on,
 -- so migrations and RLS policies can be tested against a plain Postgres 15+/16.
 -- Mirrors Supabase semantics: auth.uid() reads the `sub` claim from
 -- request.jwt.claims, and the anon / authenticated / service_role roles exist.

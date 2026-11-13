@@ -62,7 +62,7 @@ export function TaskRow({ task, readHref, disabled }: { task: SessionTask; readH
           aria-label={done ? `Mark "${task.title}" as not done` : `Mark "${task.title}" as done`}
           className={cn(
             "focus-ring mt-0.5 flex size-7 shrink-0 items-center justify-center rounded-full border-2 transition",
-            done ? "border-accent bg-accent text-[#0b0c0b] shadow-[0_0_12px_rgba(214,255,53,0.6)]" : "border-line-strong hover:border-accent",
+            done ? "border-accent bg-accent text-[#000000] shadow-[0_0_12px_rgba(255,235,59,0.6)]" : "border-line-strong hover:border-accent",
           )}
         >
           {done && <Check className="size-4" strokeWidth={3} />}

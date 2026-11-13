@@ -21,10 +21,11 @@ export type Rect = z.infer<typeof rectSchema>;
 export type HighlightAnchor = z.infer<typeof anchorSchema>;
 
 export const HIGHLIGHT_COLORS = {
-  lime: "rgba(214, 255, 53, 0.42)",
+  // "lime" is the stored id of the default highlight; it renders in the brand yellow.
+  lime: "rgba(255, 235, 59, 0.42)",
   yellow: "rgba(255, 214, 10, 0.42)",
   green: "rgba(67, 199, 122, 0.40)",
-  blue: "rgba(80, 160, 255, 0.38)",
+  blue: "rgba(0, 191, 255, 0.38)",
   pink: "rgba(255, 105, 180, 0.38)",
   orange: "rgba(255, 150, 60, 0.42)",
 } as const;

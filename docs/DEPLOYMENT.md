@@ -1,13 +1,16 @@
-# Deploying MindFlow (Vercel + Supabase)
+# Deploying FCA-AI (Vercel + Supabase)
 
 ## 1. Supabase
 
 1. Create a project (Postgres 15+).
-2. Apply migrations from the repository root:
-   ```bash
-   npx supabase link --project-ref <ref>
-   npx supabase db push
-   ```
+2. Create the database schema — **either**:
+   - **SQL editor (simplest):** open the project's SQL editor, paste the whole of `supabase/setup.sql`, and click Run.
+     Do this once, on a new project. (`setup.sql` is generated from `supabase/migrations` by `npm run db:setup-sql`.)
+   - **or the CLI:**
+     ```bash
+     npx supabase link --project-ref <ref>
+     npx supabase db push
+     ```
    This creates all tables, RLS policies, functions, the private `materials` storage bucket and the achievement catalogue.
 3. **Auth → URL configuration**: Site URL = your production URL. Add redirect URLs
    `https://<domain>/auth/confirm` and `https://<domain>/auth/callback` (plus preview domains if needed).
@@ -23,7 +26,8 @@
 
 1. Import the `Sammyleumas/fca-ai` repository (the app is at the repository root; framework preset: Next.js).
 2. Environment variables (Production + Preview), see `.env.example`:
-   `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`, `SUPABASE_SECRET_KEY`,
+   `NEXT_PUBLIC_SUPABASE_URL` (Project Settings → API → Project URL), `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`
+   (the `sb_publishable_…` key), `SUPABASE_SECRET_KEY` (the `sb_secret_…` key — server only),
    `NEXT_PUBLIC_SITE_URL`, `AI_PROVIDER`, `ANTHROPIC_API_KEY` (optional `ANTHROPIC_MODEL`).
    Also set `CRON_SECRET` (any long random string), and billing/email variables from sections 3–4.
 3. Deploy. Build command `next build`, output handled automatically.
@@ -36,7 +40,7 @@
      `curl -H "Authorization: Bearer $CRON_SECRET" https://<domain>/api/jobs/process` from any scheduler every minute.
    The function needs up to 300 s (`maxDuration`); on Hobby the limit is lower and jobs simply resume on the next call.
    Reminders (`/api/jobs/notifications`, hourly) are also generated whenever a student opens the app, so they work without a
-   scheduler; the hourly job makes them arrive on time for students who haven't opened MindFlow that day.
+   scheduler; the hourly job makes them arrive on time for students who haven't opened FCA-AI that day.
 
 ## 3. Payments
 
@@ -44,7 +48,7 @@ Payments stay **disabled** (the billing page says so) until a provider's secret 
 Premium is granted only by verified webhooks or a server-side Paystack verification — never by the browser redirect.
 
 **Stripe** (international cards)
-1. Products → create "MindFlow Premium" with recurring monthly/yearly prices → set `STRIPE_PRICE_PREMIUM_MONTHLY` /
+1. Products → create "FCA-AI Premium" with recurring monthly/yearly prices → set `STRIPE_PRICE_PREMIUM_MONTHLY` /
    `STRIPE_PRICE_PREMIUM_YEARLY`, `STRIPE_SECRET_KEY`, and optional display labels `PREMIUM_PRICE_LABEL_USD_*`.
 2. Developers → Webhooks → endpoint `https://<domain>/api/billing/webhooks/stripe` with events
    `checkout.session.completed`, `customer.subscription.created`, `customer.subscription.updated`,

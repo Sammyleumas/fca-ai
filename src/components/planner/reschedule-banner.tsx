@@ -44,7 +44,7 @@ export function RescheduleBanner({ planId, missed, today }: { planId: string; mi
       <div className="flex flex-wrap items-center gap-3 rounded-2xl border border-warning/30 bg-warning/10 p-4">
         <AlertTriangle className="size-5 shrink-0 text-warning" aria-hidden="true" />
         <p className="min-w-0 flex-1 text-sm">
-          You have {missed} missed session{missed === 1 ? "" : "s"}. MindFlow can rearrange your unfinished work so the plan stays realistic.
+          You have {missed} missed session{missed === 1 ? "" : "s"}. FCA-AI can rearrange your unfinished work so the plan stays realistic.
         </p>
         <Button size="sm" onClick={review} loading={pending && !open}>
           <CalendarClock className="size-4" aria-hidden="true" /> Review new schedule

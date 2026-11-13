@@ -84,7 +84,7 @@ function Toggle({
       <input type="checkbox" className="peer sr-only" checked={checked} onChange={(e) => onChange(e.target.checked)} />
       <span
         aria-hidden="true"
-        className="relative h-7 w-12 shrink-0 rounded-full bg-white/15 transition peer-checked:bg-accent peer-focus-visible:ring-2 peer-focus-visible:ring-accent after:absolute after:left-1 after:top-1 after:size-5 after:rounded-full after:bg-white after:transition peer-checked:after:translate-x-5 peer-checked:after:bg-[#0b0c0b]"
+        className="relative h-7 w-12 shrink-0 rounded-full bg-white/15 transition peer-checked:bg-accent peer-focus-visible:ring-2 peer-focus-visible:ring-accent after:absolute after:left-1 after:top-1 after:size-5 after:rounded-full after:bg-white after:transition peer-checked:after:translate-x-5 peer-checked:after:bg-[#000000]"
       />
     </label>
   );
@@ -194,7 +194,7 @@ export function OnboardingFlow({ initialName }: { initialName: string }) {
 
           {step === "level" && (
             <div className="space-y-6">
-              <Header title="Where are you in your studies?" text="This helps MindFlow pitch explanations at the right level." />
+              <Header title="Where are you in your studies?" text="This helps FCA-AI pitch explanations at the right level." />
               <div className="grid gap-2.5 sm:grid-cols-2">
                 {EDUCATION_LEVELS.map((l) => (
                   <Chip
@@ -337,7 +337,7 @@ export function OnboardingFlow({ initialName }: { initialName: string }) {
               </span>
               <Header
                 title={`You're all set, ${data.preferred_name.trim() || "friend"}!`}
-                text="Next, upload your learning materials and MindFlow will help you turn them into a plan."
+                text="Next, upload your learning materials and FCA-AI will help you turn them into a plan."
               />
               <FormMessage>{state.error}</FormMessage>
             </div>

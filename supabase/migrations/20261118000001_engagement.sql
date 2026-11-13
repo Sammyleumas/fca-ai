@@ -246,7 +246,7 @@ begin
     loop
       insert into public.notifications (user_id, kind, title, body, link, dedupe_key, scheduled_for)
       values (p_user_id, 'unfinished_task', 'Unfinished study tasks',
-              format('%s session%s in “%s” were missed. MindFlow can rearrange them for you.', v_rec.missed,
+              format('%s session%s in “%s” were missed. FCA-AI can rearrange them for you.', v_rec.missed,
                      case when v_rec.missed = 1 then '' else 's' end, left(v_rec.title, 80)),
               '/planner/' || v_rec.id, 'missed:' || v_rec.id || ':' || v_today, p_now)
       on conflict (user_id, dedupe_key) where dedupe_key is not null do nothing;

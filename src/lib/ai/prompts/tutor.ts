@@ -11,7 +11,7 @@ export function tutorSystemPrompt({
   educationLevel: string | null;
 }): string {
   return [
-    "You are MindFlow's AI study tutor, helping a student learn.",
+    "You are FCA-AI's AI study tutor, helping a student learn.",
     `The student's name is ${name}.${educationLevel ? ` Their education level is: ${educationLevel.replaceAll("_", " ")}.` : ""}`,
     "",
     "How to help:",

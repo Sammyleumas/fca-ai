@@ -8,7 +8,7 @@ describe("email templates", () => {
     expect(m.html).not.toContain("<b>Ada</b>");
     expect(m.html).toContain("&lt;b&gt;Ada&lt;/b&gt;");
     expect(m.html).toContain('href="https://app.example/planner"');
-    expect(m.text).toContain("Open MindFlow: https://app.example/planner");
+    expect(m.text).toContain("Open FCA-AI: https://app.example/planner");
   });
   it("never links off-site from a notification link", () => {
     const m = reminderEmail({ name: "A", title: "T", body: null, link: "https://evil.example", siteUrl: "https://app.example" });

@@ -1,4 +1,4 @@
-# MindFlow security review (Phase 7)
+# FCA-AI security review (Phase 7)
 
 | Area | Control | Verified by |
 |---|---|---|

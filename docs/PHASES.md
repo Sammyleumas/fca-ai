@@ -1,10 +1,12 @@
-# MindFlow build phases
+# FCA-AI build phases
+
+> Renamed from MindFlow to **FCA-AI** with the FCA-AI palette (royal blue #0000A1, sky #00BFFF, yellow #FFEB3B, black, white) and the shield-and-rings logo.
 
 Status legend: ✅ done & tested · 🟡 partial · ⏳ not started
 
 Current: **Phase 6 complete** · next: Phase 7 (Monetisation & launch).
 
-Repository: https://github.com/Sammyleumas/fca-ai (moved from `Ayo-food/mindflow` with full history).
+Repository: https://github.com/Sammyleumas/fca-ai (moved from `Ayo-food/fca-ai` with full history).
 
 ## Phase 1 — Foundation ✅
 
@@ -66,7 +68,7 @@ against your Supabase project before launch.
 | Plan creation | ✅ | Server recomputes the plan (client sessions are never trusted) and saves plan, materials, sessions and tasks in one transaction (`create_study_plan`). Plan limits per subscription. |
 | Daily progress | ✅ | Ticking off tasks records verified `task_completed` / `session_completed` activity → streaks, XP, achievements; sessions and plans complete automatically. Skip / restore tasks. |
 | Manual editing | ✅ | Move sessions to another day (warns past the deadline), skip tasks, archive / restore / delete plans. |
-| Adaptive rescheduling | ✅ | Missed study sessions are detected; MindFlow proposes a new schedule for every unfinished task from today, keeping order and realistic loads and the deadline whenever possible (otherwise it proposes the earliest later deadline). The student reviews and approves; the change is applied atomically (`apply_plan_reschedule`), refuses stale proposals, never moves completed work, and sends a "plan changed" notification. Nothing is overwritten silently. |
+| Adaptive rescheduling | ✅ | Missed study sessions are detected; FCA-AI proposes a new schedule for every unfinished task from today, keeping order and realistic loads and the deadline whenever possible (otherwise it proposes the earliest later deadline). The student reviews and approves; the change is applied atomically (`apply_plan_reschedule`), refuses stale proposals, never moves completed work, and sends a "plan changed" notification. Nothing is overwritten silently. |
 | Material-grounded AI tutor | ✅ | Postgres full-text search (`search_material_pages`, RLS-scoped) + the pages of the section being studied. Answers cite numbered sources; only citations of passages actually provided are kept and shown as "Material · p. N" chips. If the material doesn't cover the question, the tutor says so and labels general knowledge. General mode remains available; the student picks "Answer from" per conversation. Opened from a material or a study session with context. |
 | Dashboard | ✅ | Today's Mission and Upcoming Plan now come from real plans; links open the study session. |
 

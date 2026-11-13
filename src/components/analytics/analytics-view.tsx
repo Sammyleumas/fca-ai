@@ -39,7 +39,7 @@ export function AnalyticsView({ s, range }: { s: AnalyticsSummary; range: RangeK
         </div>
         <nav aria-label="Time range" className="glass flex gap-1 rounded-full p-1">
           {(Object.keys(RANGES) as RangeKey[]).map((k) => (
-            <Link key={k} href={`/analytics?range=${k}`} aria-current={k === range ? "page" : undefined} className={cn("focus-ring rounded-full px-3.5 py-1.5 text-xs font-semibold", k === range ? "bg-accent text-[#0b0c0b]" : "text-fg-2 hover:text-fg")}>
+            <Link key={k} href={`/analytics?range=${k}`} aria-current={k === range ? "page" : undefined} className={cn("focus-ring rounded-full px-3.5 py-1.5 text-xs font-semibold", k === range ? "bg-accent text-[#000000]" : "text-fg-2 hover:text-fg")}>
               {LABEL[k]}
             </Link>
           ))}

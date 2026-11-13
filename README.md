@@ -1,4 +1,4 @@
-# MindFlow
+# FCA-AI
 
 **Study Smarter. Achieve More.** An AI-powered study companion: upload learning materials, let AI organise them
 into study sections, follow a personalised plan, read in a focused Reading Room, practise with daily quizzes

@@ -19,7 +19,7 @@ export function publicEnv() {
   });
   if (!parsed.success) {
     throw new Error(
-      "MindFlow is missing Supabase configuration. Set NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY (see .env.example).",
+      "FCA-AI is missing Supabase configuration. Set NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY (see .env.example).",
     );
   }
   return parsed.data;

@@ -7,7 +7,7 @@ export function TopBar({ name, avatarUrl, unread }: { name: string; avatarUrl: s
   return (
     <header className="sticky top-0 z-30 border-b border-line/60 bg-bg/70 backdrop-blur-xl md:border-none md:bg-transparent md:backdrop-blur-none">
       <div className="flex h-16 items-center gap-3 px-4 md:h-20 md:px-6 lg:px-8">
-        <Link href="/dashboard" className="focus-ring rounded-lg md:hidden" aria-label="MindFlow dashboard">
+        <Link href="/dashboard" className="focus-ring rounded-lg md:hidden" aria-label="FCA-AI dashboard">
           <LogoMark className="h-7" />
         </Link>
         <form action="/search" role="search" className="hidden flex-1 md:block md:max-w-xl">

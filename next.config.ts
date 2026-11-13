@@ -34,7 +34,7 @@ const securityHeaders = [
 ];
 
 const nextConfig: NextConfig = {
-  // MindFlow screens are per-student and read the session cookie on every request,
+  // FCA-AI screens are per-student and read the session cookie on every request,
   // so plain dynamic rendering is used instead of Cache Components.
   cacheComponents: false,
   poweredByHeader: false,

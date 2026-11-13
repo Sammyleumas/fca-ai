@@ -1,4 +1,4 @@
--- MindFlow Row Level Security
+-- FCA-AI Row Level Security
 --
 -- Access classes:
 --   owner_crud      : the owner may select / insert / update / delete their own rows.

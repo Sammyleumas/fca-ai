@@ -1,5 +1,5 @@
 {
-  "name": "mindflow",
+  "name": "fca-ai",
   "version": "0.1.0",
   "private": true,
   "scripts": {
@@ -15,7 +15,8 @@
     "postinstall": "node scripts/copy-pdf-worker.mjs",
     "predev": "node scripts/copy-pdf-worker.mjs",
     "prebuild": "node scripts/copy-pdf-worker.mjs",
-    "test:journey": "node tests/e2e/journey.cjs"
+    "test:journey": "node tests/e2e/journey.cjs",
+    "db:setup-sql": "node scripts/build-setup-sql.mjs"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^1.8.0",

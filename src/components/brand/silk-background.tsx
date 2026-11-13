@@ -1,7 +1,7 @@
 import { cn } from "@/lib/utils/format";
 
 /**
- * Ambient "silk" ribbons from the MindFlow visual identity. Purely decorative,
+ * Ambient "silk" ribbons from the FCA-AI visual identity. Purely decorative,
  * GPU-cheap (static SVG + blur), and hidden from assistive tech.
  */
 export function SilkBackground({
@@ -22,15 +22,15 @@ export function SilkBackground({
       >
         <defs>
           <linearGradient id="silk-a" x1="0" y1="0" x2="1" y2="1">
-            <stop offset="0" stopColor="#D6FF35" stopOpacity="0" />
-            <stop offset="0.45" stopColor="#D6FF35" stopOpacity="0.55" />
-            <stop offset="0.7" stopColor="#A9D92D" stopOpacity="0.25" />
-            <stop offset="1" stopColor="#A9D92D" stopOpacity="0" />
+            <stop offset="0" stopColor="#0000A1" stopOpacity="0" />
+            <stop offset="0.4" stopColor="#1A1AFF" stopOpacity="0.7" />
+            <stop offset="0.7" stopColor="#00BFFF" stopOpacity="0.3" />
+            <stop offset="1" stopColor="#00BFFF" stopOpacity="0" />
           </linearGradient>
           <linearGradient id="silk-b" x1="1" y1="0" x2="0" y2="1">
-            <stop offset="0" stopColor="#F0FFB0" stopOpacity="0.0" />
-            <stop offset="0.5" stopColor="#E4FF7A" stopOpacity="0.35" />
-            <stop offset="1" stopColor="#6E8F18" stopOpacity="0" />
+            <stop offset="0" stopColor="#00BFFF" stopOpacity="0" />
+            <stop offset="0.5" stopColor="#7FDFFF" stopOpacity="0.5" />
+            <stop offset="1" stopColor="#00BFFF" stopOpacity="0" />
           </linearGradient>
           <filter id="silk-blur" x="-20%" y="-20%" width="140%" height="140%">
             <feGaussianBlur stdDeviation="6" />
@@ -55,7 +55,7 @@ export function SilkBackground({
           opacity="0.7"
         />
       </svg>
-      <div className="absolute -left-40 bottom-0 h-80 w-80 rounded-full bg-accent/5 blur-3xl" />
+      <div className="absolute -left-40 bottom-0 h-80 w-80 rounded-full bg-brand/40 blur-3xl" />
     </div>
   );
 }

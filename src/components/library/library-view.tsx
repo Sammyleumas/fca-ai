@@ -211,7 +211,7 @@ export function LibraryView({
               aria-current={active ? "page" : undefined}
               className={cn(
                 "focus-ring shrink-0 rounded-full px-4 py-2 text-sm font-medium transition",
-                active ? "bg-accent text-[#0b0c0b]" : "glass text-fg-2 hover:text-fg",
+                active ? "bg-accent text-[#000000]" : "glass text-fg-2 hover:text-fg",
               )}
             >
               {FILTER_LABEL[f]} {(f === "all" || active || f === "processing" || f === "failed") && <span className="opacity-70">({counts[f]})</span>}
@@ -249,7 +249,7 @@ export function LibraryView({
             description={
               total
                 ? "Try a different filter or search."
-                : "Upload lecture notes, textbooks or past papers. MindFlow reads them, finds the chapters and gets them ready to study."
+                : "Upload lecture notes, textbooks or past papers. FCA-AI reads them, finds the chapters and gets them ready to study."
             }
             action={
               total ? (

@@ -4,11 +4,11 @@ import { useId, useMemo, useRef, useState } from "react";
 import { cn } from "@/lib/utils/format";
 
 /*
- * Single-series charts in the MindFlow palette. Marks use the brand lime (≥ 3:1
+ * Single-series charts in the FCA-AI palette. Marks use the brand yellow (≥ 3:1
  * contrast on the dark surface); all text uses text tokens. Every chart has a
  * hover layer and an accessible table view.
  */
-const MARK = "#D6FF35";
+const MARK = "#FFEB3B";
 const GRID = "rgba(255,255,255,0.08)";
 
 function niceMax(v: number): number {
@@ -25,7 +25,7 @@ function Tooltip({ tip }: { tip: Tip }) {
   if (!tip) return null;
   return (
     <div
-      className="pointer-events-none absolute z-10 -translate-x-1/2 -translate-y-full whitespace-nowrap rounded-xl border border-line-strong bg-[#141615] px-3 py-2 text-xs shadow-xl"
+      className="pointer-events-none absolute z-10 -translate-x-1/2 -translate-y-full whitespace-nowrap rounded-xl border border-line-strong bg-[#0D0D33] px-3 py-2 text-xs shadow-xl"
       style={{ left: tip.x, top: tip.y - 10 }}
       role="status"
     >
@@ -215,7 +215,8 @@ export function LineChart({ data, label, height = 200 }: { data: { key: string; 
 /** 12-week activity calendar (sequential: one hue, darker → brighter = more minutes). */
 export function ActivityHeatmap({ days, label }: { days: { date: string; minutes: number }[]; label: string }) {
   const [tip, setTip] = useState<Tip>(null);
-  const steps = [0.07, 0.25, 0.45, 0.7, 1];
+  // Solid steps (yellow blended into the card surface) so the blue page glow never tints them.
+  const steps = ["rgba(255,255,255,0.06)", "#4a4532", "#7d7334", "#bcad37", "#FFEB3B"];
   const level = (m: number) => (m <= 0 ? 0 : m < 15 ? 1 : m < 45 ? 2 : m < 90 ? 3 : 4);
   const cols = useMemo(() => {
     // Align to weeks starting Monday.
@@ -236,7 +237,7 @@ export function ActivityHeatmap({ days, label }: { days: { date: string; minutes
                 <span
                   key={c.date}
                   className="size-3.5 rounded-[3px] sm:size-4"
-                  style={{ background: level(c.minutes) ? MARK : "rgba(255,255,255,0.06)", opacity: level(c.minutes) ? steps[level(c.minutes)] : 1 }}
+                  style={{ background: steps[level(c.minutes)] }}
                   onMouseEnter={(e) => {
                     const r = e.currentTarget.getBoundingClientRect();
                     const parent = e.currentTarget.closest(".relative")!.getBoundingClientRect();
@@ -252,8 +253,8 @@ export function ActivityHeatmap({ days, label }: { days: { date: string; minutes
       </div>
       <div className="mt-2 flex items-center gap-1.5 text-[10px] text-muted" aria-hidden="true">
         Less
-        {steps.map((o, i) => (
-          <span key={i} className={cn("size-3 rounded-[3px]")} style={{ background: i ? MARK : "rgba(255,255,255,0.06)", opacity: i ? o : 1 }} />
+        {steps.map((bg, i) => (
+          <span key={i} className={cn("size-3 rounded-[3px]")} style={{ background: bg }} />
         ))}
         More
       </div>

@@ -17,7 +17,7 @@ export function Sidebar({ name, avatarUrl, plan }: { name: string; avatarUrl: st
       aria-label="Primary"
     >
       <div className="flex h-24 items-center justify-center px-5 lg:justify-start lg:px-6">
-        <Link href="/dashboard" className="focus-ring rounded-xl" aria-label="MindFlow dashboard">
+        <Link href="/dashboard" className="focus-ring rounded-xl" aria-label="FCA-AI dashboard">
           <span className="lg:hidden">
             <LogoMark className="h-9" />
           </span>
@@ -40,7 +40,7 @@ export function Sidebar({ name, avatarUrl, plan }: { name: string; avatarUrl: st
                   className={cn(
                     "focus-ring group flex h-12 items-center gap-3.5 rounded-2xl px-3.5 text-[15px] font-medium transition md:justify-center lg:justify-start",
                     active
-                      ? "bg-gradient-to-r from-accent to-accent-2/80 text-[#0b0c0b] glow-accent"
+                      ? "bg-accent text-[#000000] glow-accent"
                       : "text-fg-2 hover:bg-white/5 hover:text-fg",
                   )}
                 >

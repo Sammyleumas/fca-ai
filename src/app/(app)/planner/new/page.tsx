@@ -19,7 +19,7 @@ export default async function NewPlanPage({ searchParams }: PageProps<"/planner/
       </Link>
       <div>
         <h1 className="text-3xl font-semibold tracking-tight">New study plan</h1>
-        <p className="mt-1 text-sm text-fg-2">MindFlow schedules your learning units around your deadline, daily time and workload.</p>
+        <p className="mt-1 text-sm text-fg-2">FCA-AI schedules your learning units around your deadline, daily time and workload.</p>
       </div>
       <PlanWizard materials={materials} preselected={preselected} today={localDateISO(profile.timezone)} defaultDailyMinutes={profile.daily_study_minutes} />
     </div>

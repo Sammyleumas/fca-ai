@@ -103,7 +103,7 @@ export async function createPlan(form: PlanInputForm): Promise<Result> {
       preferred_time: input.preferredTime ?? null,
       workload: input.workload,
       material_ids: materials.map((m) => m.id),
-      meta: { engine: "mindflow-scheduler-v1", summary: result.summary, warnings: result.warnings },
+      meta: { engine: "fca-ai-scheduler-v1", summary: result.summary, warnings: result.warnings },
       sessions: result.sessions.map((s) => ({
         date: s.date,
         kind: s.kind,

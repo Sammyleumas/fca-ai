@@ -1,5 +1,5 @@
 /**
- * Row types for the tables MindFlow reads. These mirror supabase/migrations.
+ * Row types for the tables FCA-AI reads. These mirror supabase/migrations.
  * Regenerate full types with `npx supabase gen types typescript --linked` once a
  * project is linked; these hand-written types keep the data layer explicit.
  */

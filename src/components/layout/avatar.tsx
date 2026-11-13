@@ -11,7 +11,7 @@ export function Avatar({ name, url, size = 40, className }: { name: string; url?
   return (
     <span
       className={cn(
-        "relative inline-flex shrink-0 items-center justify-center overflow-hidden rounded-full border border-accent/50 bg-gradient-to-br from-accent/30 to-accent-2/10 font-semibold text-fg",
+        "relative inline-flex shrink-0 items-center justify-center overflow-hidden rounded-full border border-accent/50 bg-gradient-to-br from-brand to-accent-2/30 font-semibold text-fg",
         className,
       )}
       style={{ width: size, height: size, fontSize: size * 0.38 }}

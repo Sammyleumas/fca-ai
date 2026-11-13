@@ -1,5 +1,5 @@
 /**
- * MindFlow study-plan engine (pure, deterministic, unit-tested).
+ * FCA-AI study-plan engine (pure, deterministic, unit-tested).
  *
  * It schedules AI-analysed learning units — never raw page ranges — across the
  * student's available days, considering complexity, length, order, daily time,

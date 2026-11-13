@@ -44,7 +44,7 @@ export function BottomNav() {
                     active ? "text-accent" : "text-fg-2",
                   )}
                 >
-                  <Icon className={cn("size-[22px]", active && "drop-shadow-[0_0_8px_rgba(214,255,53,0.7)]")} aria-hidden="true" />
+                  <Icon className={cn("size-[22px]", active && "drop-shadow-[0_0_8px_rgba(255,235,59,0.7)]")} aria-hidden="true" />
                   {short}
                 </Link>
               </li>
