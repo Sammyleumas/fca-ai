@@ -92,6 +92,26 @@ export async function deleteAccount(_prev: SettingsState, formData: FormData): P
   }
   const admin = createAdminClient();
 
+  // 0. Stop any paid subscription first so the student is never charged after deletion.
+  const { data: sub } = await admin
+    .from("subscriptions")
+    .select("provider, status, provider_subscription_id, provider_email_token")
+    .eq("user_id", user.id)
+    .maybeSingle();
+  if (sub?.provider_subscription_id && ["active", "trialing", "past_due"].includes(sub.status as string)) {
+    try {
+      if (sub.provider === "stripe") {
+        const { cancelStripeSubscription } = await import("@/lib/billing/providers/stripe");
+        await cancelStripeSubscription(sub.provider_subscription_id as string);
+      } else if (sub.provider === "paystack" && sub.provider_email_token) {
+        const { disablePaystackSubscription } = await import("@/lib/billing/providers/paystack");
+        await disablePaystackSubscription(sub.provider_subscription_id as string, sub.provider_email_token as string);
+      }
+    } catch {
+      return { error: "We couldn't cancel your Premium subscription with the payment provider. Nothing was deleted — please cancel it under Plans first, then try again." };
+    }
+  }
+
   // 1. Remove stored files (paged; storage is not covered by database cascades).
   for (let round = 0; round < 50; round++) {
     const { data: folders } = await admin.storage.from("materials").list(user.id, { limit: 100 });

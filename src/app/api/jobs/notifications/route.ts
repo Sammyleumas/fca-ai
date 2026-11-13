@@ -1,5 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { timingSafeEqual } from "node:crypto";
+import { sendReminderEmails } from "@/lib/email/reminders";
 import { createAdminClient, hasAdminClient } from "@/lib/supabase/admin";
 
 export const maxDuration = 300;
@@ -18,5 +19,6 @@ export async function GET(request: NextRequest) {
   if (!hasAdminClient()) return NextResponse.json({ error: "Not configured" }, { status: 503 });
   const { data, error } = await createAdminClient().rpc("generate_all_notifications");
   if (error) return NextResponse.json({ error: "Generation failed" }, { status: 500 });
-  return NextResponse.json({ created: data });
+  const email = await sendReminderEmails();
+  return NextResponse.json({ created: data, email });
 }

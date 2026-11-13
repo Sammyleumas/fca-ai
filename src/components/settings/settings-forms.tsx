@@ -159,7 +159,7 @@ export function NotificationsForm({ prefs }: { prefs: NotificationPrefs }) {
     { key: "streaks", label: "Streak notifications" },
     { key: "achievements", label: "Achievements" },
     { key: "plan_changes", label: "Study plan changes" },
-    { key: "email", label: "Also email important reminders (once email delivery is enabled)" },
+    { key: "email", label: "Also email me my reminders" },
   ];
   return (
     <Section id="notifications" title="Notifications">

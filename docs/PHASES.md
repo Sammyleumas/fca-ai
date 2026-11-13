@@ -122,12 +122,27 @@ against your Supabase project before launch.
 | Milestones | ✅ | New achievements: Ten-Hour Scholar, Fifty-Hour Scholar, Card Shark (new criteria in `record_study_activity`). |
 | Monthly reports | ✅ | `/analytics/report?month=YYYY-MM`: study time, active days, tasks, sessions, quizzes & average, flashcard reviews, XP, achievements, daily chart, highlights; month navigation. |
 | Reminders | ✅ | `generate_user_notifications()` in each student's time zone, honouring their preferences: today's sessions (morning), unfinished tasks from missed sessions (per plan), daily study reminder at their chosen time (only if they haven't studied yet), daily quiz waiting (evening), gentle streak nudge (18:00–21:00, live streaks only), weekly goal reached, monthly report ready. Quiet hours 22:00–07:00. Each reminder has a de-duplication key so it fires once. Runs when the student opens the app (at most every 15 min) and from `/api/jobs/notifications` (cron). |
-| Email reminders | ⏳ | The preference is stored; email delivery needs an email provider (Phase 7). |
+| Email reminders | ✅ (Phase 7) | Delivered via Resend when configured. |
 
 **Tests added:** reminders (local-time threshold, de-duplication, quiet hours, opt-outs, already-studied, all reminder types, access control) and analytics aggregates/isolation (database); insights, subject grouping, trends, challenges (unit). Analytics screen checked in a real browser on desktop and mobile.
 
 **Bug found and fixed while testing:** a chart received a formatting function from a server component (not serialisable — the page would have failed in production).
 
-## Phase 7 — Monetisation & launch ⏳
-Paystack + Stripe checkout and webhooks (server-side entitlement), security review, full E2E journey test,
-production deployment.
+## Phase 7 — Monetisation & launch ✅ (code complete; live provider checks pending credentials)
+
+| Area | Status | Notes |
+|---|---|---|
+| Stripe | ✅ code / ⏳ live | Checkout Session (subscription), Customer Portal, webhook with HMAC-SHA256 signature + 5-min timestamp tolerance. Handles checkout completed, subscription created/updated/deleted, payment failed. |
+| Paystack | ✅ code / ⏳ live | Transaction initialize with plan, server-side verification on callback (the transaction must belong to the signed-in student), webhook with HMAC-SHA512. Handles charge.success, subscription create / not_renew / disable, payment failed; manage link for card updates & cancellation. |
+| Entitlement | ✅ | `effectivePlan()` — Premium while active/trialing, and until the paid period ends after cancellation or a failed payment. Every limit (materials, upload size, plans, AI messages, quizzes, flashcards) is enforced on the server from this. Students cannot write subscriptions (RLS + grants) or read provider ids/tokens (column grants). |
+| Webhook safety | ✅ | Ledger `billing_events (provider, event_id)` makes processing idempotent; older events never overwrite newer state (`last_event_at`); failures return 500 so the provider retries. |
+| Honesty | ✅ | No provider configured → "Payments aren't available yet"; the success page says "processing" until the webhook confirms. |
+| Account deletion | ✅ | Cancels the Stripe subscription / disables the Paystack subscription first; nothing is deleted if that fails. |
+| Email | ✅ | Resend REST; reminder emails (HTML-escaped, links only to the app), opt-in, one email per notification. Auth emails via Supabase SMTP (documented). |
+| Security | ✅ | Content-Security-Policy, HSTS, frame-ancestors none, no third-party scripts; review in `docs/SECURITY.md`. |
+| Operations | ✅ | `/api/health`, structured `onRequestError` logging, GitHub Actions CI (lint, types, unit + Postgres tests, build). |
+| E2E journey | ✅ script / ⏳ run | `npm run test:journey` walks 15 steps against a real deployment. Not yet run — needs a deployed instance with Supabase + AI keys. |
+
+**Tests added:** signature verification (valid, tampered, expired, wrong secret), event→subscription mapping for both providers, entitlement rules, email escaping and link safety (unit); provider secrets hidden from students, webhook ledger private and unique, email lookup service-only (database).
+
+**Not verifiable in this sandbox:** real Stripe/Paystack API calls and webhooks, Resend delivery, and the journey script — these need live keys. Use test-mode keys before going live.

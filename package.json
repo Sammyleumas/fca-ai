@@ -14,7 +14,8 @@
     "test:e2e": "node tests/e2e/smoke.cjs",
     "postinstall": "node scripts/copy-pdf-worker.mjs",
     "predev": "node scripts/copy-pdf-worker.mjs",
-    "prebuild": "node scripts/copy-pdf-worker.mjs"
+    "prebuild": "node scripts/copy-pdf-worker.mjs",
+    "test:journey": "node tests/e2e/journey.cjs"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^1.8.0",

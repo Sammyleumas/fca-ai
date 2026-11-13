@@ -1,6 +1,7 @@
 import "server-only";
 import { createClient } from "@/lib/supabase/server";
 import type { SubscriptionPlan } from "@/types/db";
+import { effectivePlan, type SubscriptionState } from "@/lib/billing/entitlements";
 
 export async function getShellData(userId: string): Promise<{ unread: number; plan: SubscriptionPlan }> {
   const supabase = await createClient();
@@ -15,11 +16,10 @@ export async function getShellData(userId: string): Promise<{ unread: number; pl
       .eq("user_id", userId)
       .is("read_at", null)
       .lte("scheduled_for", new Date().toISOString()),
-    supabase.from("subscriptions").select("plan, status").eq("user_id", userId).maybeSingle(),
+    supabase.from("subscriptions").select("plan, status, current_period_end").eq("user_id", userId).maybeSingle(),
   ]);
-  const active = sub.data && ["active", "trialing"].includes(sub.data.status as string);
   return {
     unread: notif.count ?? 0,
-    plan: active && sub.data?.plan === "premium" ? "premium" : "free",
+    plan: effectivePlan((sub.data as SubscriptionState | null) ?? null),
   };
 }

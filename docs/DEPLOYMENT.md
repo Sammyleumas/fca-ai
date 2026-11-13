@@ -15,7 +15,9 @@
    the buttons show a friendly error until a provider is configured.
 5. **Auth → Emails** (optional): the default templates work (PKCE `code` flow). To use the `token_hash` flow, point
    links at `{{ .SiteURL }}/auth/confirm?token_hash={{ .TokenHash }}&type=email` (recovery: `type=recovery`).
-6. Configure a custom SMTP provider before launch (Supabase's built-in mailer is rate-limited).
+6. Configure a custom SMTP provider before launch (Supabase's built-in mailer is rate-limited): **Auth → SMTP
+   settings**. With Resend: host `smtp.resend.com`, port `465`, user `resend`, password = your Resend API key,
+   sender = an address on your verified domain.
 
 ## 2. Vercel
 
@@ -23,7 +25,7 @@
 2. Environment variables (Production + Preview), see `.env.example`:
    `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`, `SUPABASE_SECRET_KEY`,
    `NEXT_PUBLIC_SITE_URL`, `AI_PROVIDER`, `ANTHROPIC_API_KEY` (optional `ANTHROPIC_MODEL`).
-   Also set `CRON_SECRET` (any long random string).
+   Also set `CRON_SECRET` (any long random string), and billing/email variables from sections 3–4.
 3. Deploy. Build command `next build`, output handled automatically.
 4. **Background processing.** Processing starts automatically after each upload and continues while a student
    has the library open. For processing that also continues when nobody is online, schedule the worker:
@@ -36,7 +38,39 @@
    Reminders (`/api/jobs/notifications`, hourly) are also generated whenever a student opens the app, so they work without a
    scheduler; the hourly job makes them arrive on time for students who haven't opened MindFlow that day.
 
-## 3. Verify after deploy
+## 3. Payments
+
+Payments stay **disabled** (the billing page says so) until a provider's secret key and at least one price/plan are set.
+Premium is granted only by verified webhooks or a server-side Paystack verification — never by the browser redirect.
+
+**Stripe** (international cards)
+1. Products → create "MindFlow Premium" with recurring monthly/yearly prices → set `STRIPE_PRICE_PREMIUM_MONTHLY` /
+   `STRIPE_PRICE_PREMIUM_YEARLY`, `STRIPE_SECRET_KEY`, and optional display labels `PREMIUM_PRICE_LABEL_USD_*`.
+2. Developers → Webhooks → endpoint `https://<domain>/api/billing/webhooks/stripe` with events
+   `checkout.session.completed`, `customer.subscription.created`, `customer.subscription.updated`,
+   `customer.subscription.deleted`, `invoice.payment_failed`. Copy the signing secret to `STRIPE_WEBHOOK_SECRET`.
+3. Settings → Billing → Customer portal: enable cancellation and payment-method updates ("Manage subscription").
+
+**Paystack** (Nigeria)
+1. Plans → create monthly/yearly plans → `PAYSTACK_PLAN_PREMIUM_MONTHLY` / `_YEARLY`, `PAYSTACK_SECRET_KEY`,
+   optional labels `PREMIUM_PRICE_LABEL_NGN_*`.
+2. Settings → API Keys & Webhooks: webhook URL `https://<domain>/api/billing/webhooks/paystack`
+   (signatures are verified with the secret key). The callback URL is sent per checkout
+   (`/api/billing/paystack/callback`), so no dashboard setting is needed.
+
+Test with each provider's **test keys** first: subscribe, confirm Premium appears, cancel, confirm it remains until the
+period ends, then fails over to Free. Webhooks are idempotent (`billing_events`) and out-of-order events are ignored.
+
+## 4. Email reminders (optional)
+
+Set `RESEND_API_KEY` and `EMAIL_FROM` (verified domain). The hourly `/api/jobs/notifications` job then emails new
+reminders to students who switched on "Also email me my reminders". Without these variables reminders stay in-app.
+
+## 5. Verify after deploy
+
+- `GET /api/health` → `{"status":"ok","database":"ok", …}` (booleans show which integrations are configured).
+- Run the journey check against the deployment with a dedicated verified test account:
+  `BASE_URL=https://<domain> E2E_EMAIL=… E2E_PASSWORD=… E2E_PDF=./notes.pdf npm run test:journey`
 
 - Sign up → receive verification email → link lands on `/onboarding`.
 - Complete onboarding → dashboard shows empty states (no fake numbers).
@@ -46,9 +80,11 @@
 - Library → upload a PDF, a DOCX and a TXT together → each reaches “Ready” and shows its chapters.
 - Upload a scanned PDF → pages are transcribed (requires `ANTHROPIC_API_KEY`).
 
+See `docs/SECURITY.md` for the full security review.
+
 ## Security checklist
 
 - `SUPABASE_SECRET_KEY` and `ANTHROPIC_API_KEY` are **never** prefixed with `NEXT_PUBLIC_`.
 - RLS is enabled on every public table (`npm run test:db` proves isolation).
 - Storage bucket `materials` is private; files live under `{user_id}/…`.
-- Security headers are set in `next.config.ts`.
+- Security headers (incl. CSP) are set in `next.config.ts`. The CSP reads `NEXT_PUBLIC_SUPABASE_URL` at build time, so redeploy after changing it.
