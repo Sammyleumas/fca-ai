@@ -3,6 +3,7 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { isSupabaseConfigured } from "@/lib/env";
+import { describeAuthError, logAuthError } from "@/lib/auth/errors";
 import { siteUrl } from "@/lib/site-url";
 import { safeNextPath } from "@/lib/routes";
 import {
@@ -39,10 +40,8 @@ export async function login(_prev: AuthState, formData: FormData): Promise<AuthS
     if (error.code === "email_not_confirmed") {
       redirect(`/verify-email?email=${encodeURIComponent(parsed.data.email)}`);
     }
-    return {
-      error: error.status === 429 ? "Too many attempts. Please wait a minute and try again." : "Incorrect email or password.",
-      values: values(formData, ["email"]),
-    };
+    logAuthError(error, "login");
+    return { error: describeAuthError(error, "login"), values: values(formData, ["email"]) };
   }
   redirect(safeNextPath(parsed.data.next));
 }
@@ -66,13 +65,8 @@ export async function signup(_prev: AuthState, formData: FormData): Promise<Auth
     },
   });
   if (error) {
-    const msg =
-      error.code === "weak_password"
-        ? "That password is too easy to guess. Try a longer one."
-        : error.status === 429
-          ? "Too many sign-up attempts. Please try again shortly."
-          : "We couldn't create your account. Please try again.";
-    return { error: msg, values: values(formData, ["name", "email"]) };
+    logAuthError(error, "signup");
+    return { error: describeAuthError(error, "signup"), values: values(formData, ["name", "email"]) };
   }
   // Email confirmation enabled -> no session yet.
   if (!data.session) redirect(`/verify-email?email=${encodeURIComponent(parsed.data.email)}`);
@@ -84,9 +78,16 @@ export async function requestPasswordReset(_prev: AuthState, formData: FormData)
   if (!parsed.success) return { fields: fieldErrors(parsed.error), values: values(formData, ["email"]) };
   if (!isSupabaseConfigured()) return NOT_CONFIGURED;
   const supabase = await createClient();
-  await supabase.auth.resetPasswordForEmail(parsed.data.email, {
+  const { error } = await supabase.auth.resetPasswordForEmail(parsed.data.email, {
     redirectTo: `${await siteUrl()}/auth/confirm?next=/reset-password`,
   });
+  if (error) {
+    logAuthError(error, "reset");
+    // Only service/configuration problems are shown; nothing reveals whether the account exists.
+    if (error.status === 429 || error.status === 0 || (error.status ?? 500) >= 500 || /captcha|api key/i.test(error.message)) {
+      return { error: describeAuthError(error, "reset"), values: values(formData, ["email"]) };
+    }
+  }
   // Same response whether or not the account exists (no account enumeration).
   return { success: "If an account exists for that email, we've sent a link to reset your password." };
 }
@@ -120,7 +121,10 @@ export async function resendVerification(_prev: AuthState, formData: FormData): 
     email: parsed.data.email,
     options: { emailRedirectTo: `${await siteUrl()}/auth/confirm?next=/onboarding` },
   });
-  if (error && error.status === 429) return { error: "Please wait a little before requesting another email." };
+  if (error) {
+    logAuthError(error, "resend");
+    return { error: describeAuthError(error, "resend") };
+  }
   return { success: "Verification email sent. Check your inbox (and spam folder)." };
 }
 
@@ -140,6 +144,7 @@ export async function signInWithProvider(formData: FormData) {
       scopes: provider === "azure" ? "email" : undefined,
     },
   });
+  if (error) logAuthError(error, "oauth");
   if (error || !data.url) redirect(`/login?error=oauth_unavailable`);
   redirect(data.url);
 }
@@ -158,14 +163,8 @@ export async function continueAsGuest(_prev: AuthState, formData: FormData): Pro
   if (current?.claims?.sub) redirect("/dashboard");
   const { error } = await supabase.auth.signInAnonymously();
   if (error) {
-    return {
-      error:
-        error.status === 429
-          ? "Too many guest sessions from this network. Please try again later or create a free account."
-          : error.code === "anonymous_provider_disabled" || /anonymous/i.test(error.message)
-            ? "Guest access isn't available right now. Please create a free account instead."
-            : "We couldn't start a guest session. Please try again.",
-    };
+    logAuthError(error, "guest");
+    return { error: describeAuthError(error, "guest") };
   }
   redirect("/onboarding");
 }
@@ -184,13 +183,12 @@ export async function saveGuestAccount(_prev: AuthState, formData: FormData): Pr
     { emailRedirectTo: `${await siteUrl()}/auth/confirm?next=${encodeURIComponent("/reset-password?saved=1")}` },
   );
   if (error) {
+    logAuthError(error, "save_guest");
     return {
       error:
         error.code === "email_exists" || /already/i.test(error.message)
           ? "That email already has an FCA-AI account. Sign in to it instead (your guest work stays in this guest session)."
-          : error.status === 429
-            ? "Too many attempts. Please wait a minute and try again."
-            : "We couldn't send the confirmation email. Please try again.",
+          : describeAuthError(error, "save_guest"),
       values: values(formData, ["email"]),
     };
   }
