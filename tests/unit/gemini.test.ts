@@ -168,6 +168,7 @@ describe("Gemini helpers", () => {
   it("chooses thinking level vs budget by model generation", () => {
     expect(thinkingConfigFor("gemini-3.8-flash", "high")).toEqual({ thinkingLevel: ThinkingLevel.HIGH });
     expect(thinkingConfigFor("gemini-2.5-flash", "low")).toEqual({ thinkingBudget: 0 });
+    expect(thinkingConfigFor("gemini-flash-latest", "low")).toBeUndefined(); // alias: model default
   });
   it("converts roles and schemas", () => {
     expect(toGeminiContents([{ role: "assistant", content: "a" }])[0].role).toBe("model");
@@ -214,9 +215,119 @@ describe("AI self-test (/api/health?ai=check)", () => {
     expect(JSON.stringify(first)).not.toContain("test-key-not-real");
     await aiSelfTest(1_030_000);
     expect(calls).toBe(1);
-    provider.streamText = () => ({ textStream: (async function* () {})(), final: async () => ({ text: "OK", usage: {}, stopReason: "end_turn" }) });
-    expect((await aiSelfTest(1_070_000)).ok).toBe(true);
+    provider.streamText = () => ({ textStream: (async function* () {})(), final: async () => ({ text: "OK", usage: { model: "gemini-flash-latest", inputTokens: 1, outputTokens: 1 }, stopReason: "end_turn" }) });
+    expect(await aiSelfTest(1_070_000)).toMatchObject({ ok: true, model: "gemini-flash-latest" });
     delete process.env.GEMINI_API_KEY;
     ai.resetAIProviderForTests();
+  });
+});
+
+describe("Backup models when Gemini is overloaded (ref: gemini_503)", () => {
+  /** A client whose models fail or answer per model name. */
+  function perModelClient(plan: Record<string, { error?: unknown; text?: string; streamErrorAfterText?: boolean }>) {
+    const tried: string[] = [];
+    const client = {
+      models: {
+        async generateContent(params: { model: string }) {
+          tried.push(params.model);
+          const p = plan[params.model] ?? { error: new ApiError({ status: 404, message: "not found" }) };
+          if (p.error) throw p.error;
+          return { text: p.text, candidates: [{ finishReason: FinishReason.STOP }] };
+        },
+        async generateContentStream(params: { model: string }) {
+          tried.push(params.model);
+          const p = plan[params.model] ?? { error: new ApiError({ status: 404, message: "not found" }) };
+          if (p.error && !p.streamErrorAfterText) throw p.error;
+          return (async function* () {
+            yield { text: p.text ?? "" };
+            if (p.streamErrorAfterText) throw p.error;
+            yield { text: "", candidates: [{ finishReason: FinishReason.STOP }], modelVersion: params.model };
+          })();
+        },
+      },
+    };
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- structural fake of GoogleGenAI
+    return { client: client as any, tried };
+  }
+  const overloaded = () => new ApiError({ status: 503, message: "The model is overloaded. Please try again later." });
+  const schema = z.object({ ok: z.boolean() });
+  const quiet = () => {
+    vi.spyOn(console, "warn").mockImplementation(() => {});
+    vi.spyOn(console, "error").mockImplementation(() => {});
+  };
+
+  it("answers from a backup model when the main one is overloaded or over quota", async () => {
+    quiet();
+    const { client, tried } = perModelClient({
+      "gemini-3.8-flash": { error: overloaded() },
+      "gemini-flash-latest": { error: new ApiError({ status: 429, message: "Quota exceeded for metric: free_tier_requests, limit: 20 per day" }) },
+      "gemini-flash-lite-latest": { text: JSON.stringify({ ok: true }) },
+    });
+    const p = new GeminiProvider("k", "gemini-3.8-flash", client, ["gemini-flash-latest", "gemini-flash-lite-latest", "gemini-2.5-flash"]);
+    const { object, usage } = await p.generateObject({ system: "s", messages: [{ role: "user", content: "x" }], schema, effort: "low" });
+    expect(object.ok).toBe(true);
+    expect(usage.model).toBe("gemini-flash-lite-latest");
+    expect(tried).toEqual(["gemini-3.8-flash", "gemini-flash-latest", "gemini-flash-lite-latest"]);
+    vi.restoreAllMocks();
+  });
+
+  it("streams the tutor's answer from a backup model", async () => {
+    quiet();
+    const { client, tried } = perModelClient({ "gemini-3.8-flash": { error: overloaded() }, "gemini-flash-latest": { text: "Hello from backup" } });
+    const s = new GeminiProvider("k", "gemini-3.8-flash", client, ["gemini-flash-latest"]).streamText({ system: "s", messages: [{ role: "user", content: "q" }] });
+    let out = "";
+    for await (const d of s.textStream) out += d;
+    expect(out).toBe("Hello from backup");
+    expect((await s.final()).usage.model).toBe("gemini-flash-latest");
+    expect(tried).toEqual(["gemini-3.8-flash", "gemini-flash-latest"]);
+    vi.restoreAllMocks();
+  });
+
+  it("does not switch models for problems another model can't fix, or mid-answer", async () => {
+    quiet();
+    const badKey = perModelClient({ "gemini-3.8-flash": { error: new ApiError({ status: 400, message: "API key not valid." }) }, "gemini-flash-latest": { text: "{}" } });
+    await expect(
+      new GeminiProvider("k", "gemini-3.8-flash", badKey.client, ["gemini-flash-latest"]).generateObject({ system: "s", messages: [{ role: "user", content: "x" }], schema }),
+    ).rejects.toMatchObject({ code: "not_configured" });
+    expect(badKey.tried).toEqual(["gemini-3.8-flash"]);
+
+    const midway = perModelClient({ "gemini-3.8-flash": { text: "Half an answer", error: overloaded(), streamErrorAfterText: true }, "gemini-flash-latest": { text: "x" } });
+    const s = new GeminiProvider("k", "gemini-3.8-flash", midway.client, ["gemini-flash-latest"]).streamText({ system: "s", messages: [{ role: "user", content: "q" }] });
+    const read = async () => {
+      for await (const _ of s.textStream) void _;
+    };
+    await expect(read()).rejects.toMatchObject({ code: "unavailable" });
+    expect(midway.tried).toEqual(["gemini-3.8-flash"]);
+    vi.restoreAllMocks();
+  });
+
+  it("reports the original overload message when every model is busy", async () => {
+    quiet();
+    // The last backup doesn't exist (404): the student still sees the real cause.
+    const all = perModelClient({ "gemini-3.8-flash": { error: overloaded() }, "gemini-flash-latest": { error: overloaded() } });
+    await expect(
+      new GeminiProvider("k", "gemini-3.8-flash", all.client, ["gemini-flash-latest", "no-such-model"]).generateObject({ system: "s", messages: [{ role: "user", content: "x" }], schema }),
+    ).rejects.toThrow(/overloaded.*ref: gemini_503/);
+    expect(all.tried).toEqual(["gemini-3.8-flash", "gemini-flash-latest", "no-such-model"]);
+    const s = new GeminiProvider("k", "gemini-3.8-flash", all.client, ["no-such-model"]).streamText({ system: "s", messages: [{ role: "user", content: "q" }] });
+    const read = async () => {
+      for await (const _ of s.textStream) void _;
+    };
+    await expect(read()).rejects.toThrow(/overloaded.*ref: gemini_503/);
+    vi.restoreAllMocks();
+  });
+
+  it("reads backup models from GEMINI_FALLBACK_MODELS, without repeating the main model", async () => {
+    const { serverEnv, DEFAULT_GEMINI_FALLBACK_MODELS } = await import("@/lib/server-env");
+    vi.stubEnv("GEMINI_FALLBACK_MODELS", "");
+    vi.stubEnv("GEMINI_MODEL", "");
+    expect(serverEnv.geminiFallbackModels).toEqual(DEFAULT_GEMINI_FALLBACK_MODELS);
+    vi.stubEnv("GEMINI_MODEL", "gemini-flash-latest");
+    expect(serverEnv.geminiFallbackModels).not.toContain("gemini-flash-latest");
+    vi.stubEnv("GEMINI_FALLBACK_MODELS", "a, b ,a");
+    expect(serverEnv.geminiFallbackModels).toEqual(["a", "b"]);
+    vi.stubEnv("GEMINI_FALLBACK_MODELS", "none");
+    expect(serverEnv.geminiFallbackModels).toEqual([]);
+    vi.unstubAllEnvs();
   });
 });

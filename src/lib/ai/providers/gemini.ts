@@ -36,11 +36,26 @@ const REFUSAL_FINISH: ReadonlySet<string> = new Set([
  * Thinking control: Gemini 3+ models take a thinking *level*; Gemini 2.x models
  * take a token *budget*. Effort maps onto whichever the model understands.
  */
-export function thinkingConfigFor(model: string, effort: Effort): ThinkingConfig {
+export function thinkingConfigFor(model: string, effort: Effort): ThinkingConfig | undefined {
   if (/^gemini-2\./.test(model)) {
-    return { thinkingBudget: effort === "low" ? 0 : effort === "medium" ? 2048 : 8192 };
+    // Flash-Lite 2.x can't take a 0 budget below its minimum; Flash can. Keep low = off for Flash.
+    return { thinkingBudget: effort === "low" ? (/lite/.test(model) ? 512 : 0) : effort === "medium" ? 2048 : 8192 };
   }
-  return { thinkingLevel: effort === "low" ? ThinkingLevel.LOW : effort === "medium" ? ThinkingLevel.MEDIUM : ThinkingLevel.HIGH };
+  if (/^gemini-\d/.test(model)) {
+    return { thinkingLevel: effort === "low" ? ThinkingLevel.LOW : effort === "medium" ? ThinkingLevel.MEDIUM : ThinkingLevel.HIGH };
+  }
+  // Aliases such as "gemini-flash-latest" may point at either generation: use the model's default.
+  return undefined;
+}
+
+/** Errors where another model may still answer: overloaded, over its own quota, or not found. */
+export function shouldTryNextModel(error: unknown): boolean {
+  return error instanceof ApiError && [404, 429, 500, 502, 503].includes(error.status);
+}
+
+/** When every model failed, report the most useful cause: a missing backup model shouldn't hide "overloaded". */
+function bestError(errors: unknown[]): unknown {
+  return errors.find((e) => !(e instanceof ApiError && e.status === 404)) ?? errors[0];
 }
 
 /** Our chat history → Gemini contents ("assistant" is called "model" in Gemini). */
@@ -164,11 +179,15 @@ export class GeminiProvider implements AIProvider {
   readonly name = "gemini";
   private readonly client: GoogleGenAI;
 
+  private readonly models: string[];
+
   constructor(
     apiKey: string,
     private readonly model: string,
     client?: GoogleGenAI,
+    fallbackModels: string[] = [],
   ) {
+    this.models = [model, ...fallbackModels.filter((m) => m && m !== model)];
     this.client =
       client ??
       new GoogleGenAI({
@@ -182,20 +201,40 @@ export class GeminiProvider implements AIProvider {
       });
   }
 
-  private config(system: string, maxTokens: number, effort: Effort, timeout: number, signal?: AbortSignal): GenerateContentConfig {
+  private config(model: string, system: string, maxTokens: number, effort: Effort, timeout: number, signal?: AbortSignal): GenerateContentConfig {
+    const thinkingConfig = thinkingConfigFor(model, effort);
     return {
       systemInstruction: system,
       maxOutputTokens: Math.min(maxTokens + THINKING_HEADROOM[effort], MAX_OUTPUT_CAP),
-      thinkingConfig: thinkingConfigFor(this.model, effort),
+      ...(thinkingConfig && { thinkingConfig }),
       abortSignal: signal,
       httpOptions: { timeout },
     };
   }
 
+  /**
+   * Runs one request against the main model, then each backup model in turn while the
+   * failure is one another model might not have (overload, quota, not found).
+   */
+  private async withFallback<T>(run: (model: string) => Promise<T>): Promise<T> {
+    const errors: unknown[] = [];
+    for (const [i, model] of this.models.entries()) {
+      try {
+        return await run(model);
+      } catch (error) {
+        errors.push(error);
+        if (!shouldTryNextModel(error)) throw mapGeminiError(error);
+        if (i < this.models.length - 1) logFallback(model, error);
+      }
+    }
+    throw mapGeminiError(bestError(errors));
+  }
+
   streamText({ system, messages, maxTokens = 4000, effort = "medium", signal }: GenerateOptions): AITextStream {
     const client = this.client;
-    const model = this.model;
-    const config = this.config(system, maxTokens, effort, GEMINI_TIMEOUTS.stream, signal);
+    const models = this.models;
+    const configFor = (model: string) => this.config(model, system, maxTokens, effort, GEMINI_TIMEOUTS.stream, signal);
+    let servedBy = this.model;
     let text = "";
     let last: GenerateContentResponse | undefined;
     let started = false;
@@ -203,18 +242,30 @@ export class GeminiProvider implements AIProvider {
 
     async function* deltas(): AsyncGenerator<string> {
       started = true;
-      try {
-        const stream = await client.models.generateContentStream({ model, contents: toGeminiContents(messages), config });
-        for await (const chunk of stream) {
-          last = chunk;
-          const piece = chunk.text;
-          if (piece) {
-            text += piece;
-            yield piece;
+      const errors: unknown[] = [];
+      for (const [i, model] of models.entries()) {
+        let yielded = false;
+        try {
+          const stream = await client.models.generateContentStream({ model, contents: toGeminiContents(messages), config: configFor(model) });
+          servedBy = model;
+          for await (const chunk of stream) {
+            last = chunk;
+            const piece = chunk.text;
+            if (piece) {
+              text += piece;
+              yielded = true;
+              yield piece;
+            }
           }
+          return;
+        } catch (error) {
+          // A backup model can only take over before any of the answer has been shown.
+          if (yielded || !shouldTryNextModel(error)) throw mapGeminiError(error);
+          errors.push(error);
+          if (i === models.length - 1) throw mapGeminiError(bestError(errors));
+          logFallback(model, error);
+          last = undefined;
         }
-      } catch (error) {
-        throw mapGeminiError(error);
       }
     }
     const textStream = deltas();
@@ -238,7 +289,7 @@ export class GeminiProvider implements AIProvider {
             stopReason === "max_tokens" ? "The AI ran out of space before answering. Please try a shorter question." : "The AI returned an empty answer. Please try again.",
           );
         }
-        return { text, usage: usageOf(last, model), stopReason };
+        return { text, usage: usageOf(last, servedBy), stopReason };
       },
     };
   }
@@ -251,27 +302,25 @@ export class GeminiProvider implements AIProvider {
     effort = "medium",
     signal,
   }: GenerateOptions & { schema: z.ZodType<T> }): Promise<{ object: T; usage: AIUsage }> {
-    try {
+    return this.withFallback(async (model) => {
       const response = await this.client.models.generateContent({
-        model: this.model,
+        model,
         contents: toGeminiContents(messages),
         config: {
-          ...this.config(system, maxTokens, effort, GEMINI_TIMEOUTS.object, signal),
+          ...this.config(model, system, maxTokens, effort, GEMINI_TIMEOUTS.object, signal),
           responseMimeType: "application/json",
           responseJsonSchema: toGeminiJsonSchema(schema),
         },
       });
-      return { object: parseStructured(response, schema, "The AI"), usage: usageOf(response, this.model) };
-    } catch (error) {
-      throw mapGeminiError(error);
-    }
+      return { object: parseStructured(response, schema, "The AI"), usage: usageOf(response, model) };
+    });
   }
 
   async transcribePdf(pdf: Uint8Array, pageCount: number, signal?: AbortSignal): Promise<{ pages: string[]; usage: AIUsage }> {
     const schema = z.object({ pages: z.array(z.object({ page: z.number().int(), text: z.string() })) });
-    try {
+    return this.withFallback(async (model) => {
       const response = await this.client.models.generateContent({
-        model: this.model,
+        model,
         contents: [
           {
             role: "user",
@@ -283,6 +332,7 @@ export class GeminiProvider implements AIProvider {
         ],
         config: {
           ...this.config(
+            model,
             [
               "You are an OCR engine for a study app. Transcribe the visible text of each page of the attached PDF exactly as written.",
               "Preserve headings, lists, equations (as plain text) and paragraph breaks. Do not summarise, translate, correct or add anything.",
@@ -300,11 +350,14 @@ export class GeminiProvider implements AIProvider {
       });
       const parsed = parseStructured(response, schema, "Text recognition");
       const pages = Array.from({ length: pageCount }, (_, i) => parsed.pages.find((p) => p.page === i + 1)?.text ?? "");
-      return { pages, usage: usageOf(response, this.model) };
-    } catch (error) {
-      throw mapGeminiError(error);
-    }
+      return { pages, usage: usageOf(response, model) };
+    });
   }
+}
+
+function logFallback(model: string, error: unknown) {
+  // Server log only. Never includes the API key or request content.
+  console.warn(JSON.stringify({ level: "warn", msg: "gemini model unavailable, trying backup model", model, ref: geminiErrorRef(error) }));
 }
 
 /** Reads a JSON response and validates it against the feature's schema. */
