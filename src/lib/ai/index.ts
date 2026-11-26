@@ -16,7 +16,7 @@ export function getAIProvider(): AIProvider {
     case "gemini": {
       const key = serverEnv.geminiApiKey;
       if (!key) throw new AIError("not_configured", "AI features are not configured yet.");
-      cached = new GeminiProvider(key, serverEnv.geminiModel);
+      cached = new GeminiProvider(key, serverEnv.geminiModel, undefined, serverEnv.geminiFallbackModels);
       return cached;
     }
     default:
