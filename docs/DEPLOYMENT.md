@@ -112,7 +112,7 @@ nothing is stored on the server (work is kept in the visitor's browser only).
 - The per-IP limiter lives in memory on each function instance, so it is a soft limit.
   For a hard cap, add a Vercel Firewall rate-limit rule on `/api/try/*`.
 - If `GEMINI_API_KEY` is missing, the page still loads but AI actions say
-  "AI features are not configured yet."
+  "The AI isn't set up on this site yet."
 
 ## Security checklist
 
