@@ -37,6 +37,12 @@ export default async function LoginPage({ searchParams }: PageProps<"/login">) {
       <LoginForm next={next} />
       <OAuthButtons next={next} />
       <GuestButton size="md" className="mt-4" />
+      <p className="mt-3 text-center text-sm text-fg-2">
+        Just want to try it?{" "}
+        <Link href="/try" className="focus-ring rounded font-semibold text-accent hover:underline">
+          Use FCA-AI without an account
+        </Link>
+      </p>
       <p className="mt-8 text-center text-sm text-fg-2">
         Don&apos;t have an account?{" "}
         <Link href="/signup" className="focus-ring rounded font-semibold text-accent hover:underline">

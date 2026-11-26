@@ -101,6 +101,19 @@ reminders to students who switched on "Also email me my reminders". Without thes
 
 See `docs/SECURITY.md` for the full security review.
 
+## "Try it" mode (no account, no database)
+
+`/try` lets anyone paste or upload notes and use the AI tutor, quizzes and flashcards
+without signing in. It needs only `GEMINI_API_KEY` — Supabase is not used at all, and
+nothing is stored on the server (work is kept in the visitor's browser only).
+
+- Limits per visitor IP: 30 AI requests and 20 uploads per hour, notes up to 60,000
+  characters, uploads up to 4 MB (Vercel's request-body limit).
+- The per-IP limiter lives in memory on each function instance, so it is a soft limit.
+  For a hard cap, add a Vercel Firewall rate-limit rule on `/api/try/*`.
+- If `GEMINI_API_KEY` is missing, the page still loads but AI actions say
+  "AI features are not configured yet."
+
 ## Security checklist
 
 - `SUPABASE_SECRET_KEY` and `GEMINI_API_KEY` are **never** prefixed with `NEXT_PUBLIC_`.
