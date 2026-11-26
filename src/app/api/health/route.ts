@@ -3,7 +3,7 @@ import { isAIConfigured } from "@/lib/ai";
 import { hasAdminClient, createAdminClient } from "@/lib/supabase/admin";
 import { billingProviders } from "@/lib/billing/config";
 import { emailConfigured } from "@/lib/email/send";
-import { authDiagnostics, schemaDiagnostics } from "@/lib/supabase/diagnostics";
+import { authDiagnostics, configSummary, schemaDiagnostics } from "@/lib/supabase/diagnostics";
 
 export const dynamic = "force-dynamic";
 
@@ -19,6 +19,8 @@ export async function GET() {
   const body = {
     status: database === "error" ? "degraded" : "ok",
     database,
+    /** Which Supabase project and settings are in use (public IDs and variable names only). */
+    supabase: configSummary(),
     /** Supabase Auth as seen with the public key: reachable, and which sign-in methods are on. */
     auth,
     /** "ok" once supabase/setup.sql has been run; "not_set_up" if the app's tables are missing. */

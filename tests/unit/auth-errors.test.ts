@@ -50,3 +50,35 @@ describe("Supabase health diagnostics", () => {
     expect(await schemaDiagnostics()).toBe("unreachable");
   });
 });
+
+describe("Supabase config summary (which project the live site really uses)", () => {
+  afterEach(() => vi.unstubAllEnvs());
+  const jwt = (payload: object) => `eyJhbGciOiJIUzI1NiJ9.${Buffer.from(JSON.stringify(payload)).toString("base64url")}.sig`;
+
+  it("names the project and the settings in use, never the key itself", async () => {
+    const { configSummary } = await import("@/lib/supabase/diagnostics");
+    vi.stubEnv("NEXT_PUBLIC_SUPABASE_URL", "");
+    vi.stubEnv("NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY", "");
+    vi.stubEnv("NEXT_PUBLIC_SUPABASE_ANON_KEY", "");
+    const def = configSummary();
+    expect(def).toMatchObject({ project: "hpsoenqovicutnztjyqd", urlSource: "built-in default", keySource: "built-in default", keyType: "publishable", keyMatchesProject: null });
+    expect(JSON.stringify(def)).not.toContain("sb_publishable_");
+  });
+
+  it("flags a URL from one project paired with a key from another", async () => {
+    const { configSummary } = await import("@/lib/supabase/diagnostics");
+    vi.stubEnv("NEXT_PUBLIC_SUPABASE_URL", "https://tzchbngijfindskqbqws.supabase.co");
+    vi.stubEnv("NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY", "");
+    vi.stubEnv("NEXT_PUBLIC_SUPABASE_ANON_KEY", jwt({ ref: "hpsoenqovicutnztjyqd", role: "anon" }));
+    expect(configSummary()).toMatchObject({
+      project: "tzchbngijfindskqbqws",
+      urlSource: "NEXT_PUBLIC_SUPABASE_URL",
+      keySource: "NEXT_PUBLIC_SUPABASE_ANON_KEY",
+      keyType: "legacy_anon",
+      keyProject: "hpsoenqovicutnztjyqd",
+      keyMatchesProject: false,
+    });
+    vi.stubEnv("NEXT_PUBLIC_SUPABASE_ANON_KEY", jwt({ ref: "tzchbngijfindskqbqws", role: "service_role" }));
+    expect(configSummary()).toMatchObject({ keyType: "service_role", keyMatchesProject: true });
+  });
+});
