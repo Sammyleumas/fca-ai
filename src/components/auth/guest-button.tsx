@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useActionState } from "react";
 import { useFormStatus } from "react-dom";
 import { UserRound } from "lucide-react";
@@ -34,7 +35,14 @@ export function GuestButton({
     <form action={action} className={cn("flex flex-col gap-2", className)}>
       <Submit size={size} variant={variant} className="w-full" />
       {note && <p className="text-center text-xs text-muted">No email needed. Save your work with an account any time.</p>}
-      {state.error && <FormMessage>{state.error}</FormMessage>}
+      {state.error && (
+        <FormMessage>
+          {state.error}{" "}
+          <Link href="/try" className="font-semibold underline">
+            Try FCA-AI without an account instead
+          </Link>
+        </FormMessage>
+      )}
     </form>
   );
 }
