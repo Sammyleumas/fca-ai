@@ -198,26 +198,44 @@ describe("Gemini failure diagnostics (so 'temporarily unavailable' has a findabl
 });
 
 describe("AI self-test (/api/health?ai=check)", () => {
-  it("reports success or the user-safe error, and calls Gemini at most once a minute", async () => {
+  it("tests every model separately, reports Google's reason per model, never the key, at most once a minute", async () => {
     const { aiSelfTest, resetAISelfTestForTests } = await import("@/lib/ai/self-test");
     const ai = await import("@/lib/ai");
-    process.env.GEMINI_API_KEY = "test-key-not-real-123";
+    vi.stubEnv("GEMINI_API_KEY", "test-key-not-real-123");
+    vi.stubEnv("GEMINI_MODEL", "");
+    vi.stubEnv("GEMINI_FALLBACK_MODELS", "backup-a,backup-b");
     ai.resetAIProviderForTests();
     resetAISelfTestForTests();
-    const provider = ai.getAIProvider() as unknown as { streamText: (o: unknown) => unknown };
-    let calls = 0;
-    provider.streamText = () => {
-      calls++;
-      return { textStream: (async function* () {})(), final: async () => { throw new AIError("unavailable", "The AI service is temporarily unavailable. (ref: gemini_500)"); } };
+    const behaviour: Record<string, InstanceType<typeof AIError> | string> = {
+      "gemini-3.8-flash": new AIError("unavailable", "The AI service is overloaded right now. (ref: gemini_503)", "The model is overloaded."),
+      "backup-a": new AIError("bad_request", "The AI service couldn't process this request. (ref: gemini_400)", "Thinking level is not supported for this model. key=[redacted]"),
+      "backup-b": "OK",
     };
-    const first = await aiSelfTest(1_000_000);
-    expect(first).toMatchObject({ ok: false, error: "The AI service is temporarily unavailable. (ref: gemini_500)" });
-    expect(JSON.stringify(first)).not.toContain("test-key-not-real");
-    await aiSelfTest(1_030_000);
-    expect(calls).toBe(1);
-    provider.streamText = () => ({ textStream: (async function* () {})(), final: async () => ({ text: "OK", usage: { model: "gemini-flash-latest", inputTokens: 1, outputTokens: 1 }, stopReason: "end_turn" }) });
-    expect(await aiSelfTest(1_070_000)).toMatchObject({ ok: true, model: "gemini-flash-latest" });
-    delete process.env.GEMINI_API_KEY;
+    let calls = 0;
+    const spy = vi.spyOn(GeminiProvider.prototype, "streamText").mockImplementation(function (this: InstanceType<typeof GeminiProvider>) {
+      calls++;
+      const outcome = behaviour[this.modelOrder[0]];
+      return {
+        textStream: (async function* () {})(),
+        final: async () => {
+          if (outcome instanceof AIError) throw outcome;
+          return { text: outcome, usage: { model: "m", inputTokens: 1, outputTokens: 1 }, stopReason: "end_turn" };
+        },
+      };
+    });
+    const r = await aiSelfTest(1_000_000);
+    expect(r).toMatchObject({ ok: true, model: "backup-b", fallbackModels: ["backup-a", "backup-b"] });
+    expect(r.models?.map((m) => [m.model, m.ok])).toEqual([["gemini-3.8-flash", false], ["backup-a", false], ["backup-b", true]]);
+    expect(r.models?.[1]).toMatchObject({ error: expect.stringContaining("gemini_400"), reason: expect.stringContaining("Thinking level is not supported") });
+    expect(JSON.stringify(r)).not.toContain("test-key-not-real");
+    await aiSelfTest(1_030_000); // cached
+    expect(calls).toBe(3);
+
+    behaviour["backup-b"] = new AIError("unavailable", "The AI service is overloaded right now. (ref: gemini_503)", "overloaded");
+    const none = await aiSelfTest(1_070_000);
+    expect(none).toMatchObject({ ok: false, model: "gemini-3.8-flash", error: expect.stringContaining("gemini_503") });
+    spy.mockRestore();
+    vi.unstubAllEnvs();
     ai.resetAIProviderForTests();
   });
 });
@@ -280,6 +298,21 @@ describe("Backup models when Gemini is overloaded (ref: gemini_503)", () => {
     expect(out).toBe("Hello from backup");
     expect((await s.final()).usage.model).toBe("gemini-flash-latest");
     expect(tried).toEqual(["gemini-3.8-flash", "gemini-flash-latest"]);
+    vi.restoreAllMocks();
+  });
+
+  it("switches on a model-specific 400, and keeps Google's reason as internal detail", async () => {
+    quiet();
+    const { client, tried } = perModelClient({
+      "gemini-3.8-flash": { error: new ApiError({ status: 400, message: "Thinking level is not supported for this model." }) },
+      "gemini-flash-latest": { text: JSON.stringify({ ok: true }) },
+    });
+    const { object } = await new GeminiProvider("k", "gemini-3.8-flash", client, ["gemini-flash-latest"]).generateObject({ system: "s", messages: [{ role: "user", content: "x" }], schema });
+    expect(object.ok).toBe(true);
+    expect(tried).toEqual(["gemini-3.8-flash", "gemini-flash-latest"]);
+    const e = mapGeminiError(new ApiError({ status: 400, message: "Bad field for key AIzaSyFAKEFAKEFAKEFAKE99" }));
+    expect(e.detail).toContain("Bad field");
+    expect(e.detail).not.toContain("AIzaSyFAKE");
     vi.restoreAllMocks();
   });
 
