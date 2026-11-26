@@ -27,17 +27,17 @@ describe("open access (no accounts)", () => {
   });
 
   it("lets everyone into the study app, legal pages and its APIs", () => {
-    for (const p of ["/", "/try", "/legal/terms", "/api/try/chat", "/api/try/extract", "/api/health"]) {
+    for (const p of ["/", "/study", "/try", "/legal/terms", "/api/try/chat", "/api/try/extract", "/api/health"]) {
       expect(isOpenAccessPath(p), p).toBe(true);
       expect(openAccess(req(p)).headers.get("location"), p).toBeNull();
     }
   });
 
-  it("sends account pages (sign-in, dashboard, planner…) to the study app instead of failing", () => {
+  it("sends account pages (sign-in, dashboard, planner…) to the study app at /study instead of failing", () => {
     for (const p of ["/login", "/signup", "/dashboard", "/planner/new", "/library/abc", "/auth/callback?code=x", "/onboarding"]) {
       const res = openAccess(req(p));
       expect(res.status, p).toBe(307);
-      expect(res.headers.get("location"), p).toBe("https://fca-ai.example/");
+      expect(res.headers.get("location"), p).toBe("https://fca-ai.example/study");
     }
   });
 
@@ -52,7 +52,7 @@ describe("open access (no accounts)", () => {
     const fetchSpy = vi.fn();
     vi.stubGlobal("fetch", fetchSpy);
     const res = await proxy(req("/dashboard"));
-    expect(res.headers.get("location")).toBe("https://fca-ai.example/");
+    expect(res.headers.get("location")).toBe("https://fca-ai.example/study");
     const health = await (await import("@/app/api/health/route")).GET();
     expect(await health.json()).toMatchObject({ status: "ok", accounts: false });
     expect(fetchSpy).not.toHaveBeenCalled();
