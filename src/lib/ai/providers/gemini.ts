@@ -10,6 +10,7 @@ import {
   type ThinkingConfig,
 } from "@google/genai";
 import { z } from "zod";
+import { serverEnv } from "@/lib/server-env";
 import { AIError, type AIProvider, type AITextStream, type AIUsage, type ChatMessage, type Effort, type GenerateOptions } from "../types";
 
 /** Per-request time limits (ms). Long structured jobs run in background workers with longer budgets. */
@@ -92,39 +93,71 @@ function isAbort(error: unknown): boolean {
   return error instanceof Error && (error.name === "AbortError" || error.name === "TimeoutError" || /\b(aborted|timed? ?out)\b/i.test(error.message));
 }
 
+/** Removes anything that looks like a Google API key from provider text before logging. */
+export function redactSecrets(text: string): string {
+  const key = serverEnv.geminiApiKey;
+  let out = text.replace(/AIza[0-9A-Za-z_-]{10,}/g, "[redacted]");
+  if (key && key.length >= 8) out = out.split(key).join("[redacted]");
+  return out;
+}
+
+/** A short, non-secret reference for support: "gemini_503", "network", "timeout"… */
+export function geminiErrorRef(error: unknown): string {
+  if (error instanceof ApiError) return `gemini_${error.status}`;
+  if (isAbort(error)) return "timeout";
+  if (error instanceof Error && /fetch failed|ENOTFOUND|ECONNRE|EAI_AGAIN|socket|network/i.test(`${error.message} ${String((error as { cause?: unknown }).cause ?? "")}`)) {
+    return "network";
+  }
+  return error instanceof Error ? `error_${error.name}`.slice(0, 40) : "unknown";
+}
+
+function logGeminiFailure(error: unknown, ref: string) {
+  const detail = error instanceof Error ? error.message : String(error);
+  // Server log only (Vercel → Logs). Never includes the API key or request content.
+  console.error(JSON.stringify({ level: "error", msg: "gemini request failed", ref, detail: redactSecrets(detail).slice(0, 300) }));
+}
+
 /**
  * Maps any failure to a user-safe AIError. Messages never include the API key,
- * request bodies or raw provider responses.
+ * request bodies or raw provider responses; unexpected failures carry a short
+ * reference (e.g. "ref: gemini_503") and are logged on the server.
  */
 export function mapGeminiError(error: unknown): AIError {
   if (error instanceof AIError) return error;
+  const ref = geminiErrorRef(error);
+  logGeminiFailure(error, ref);
+  const tag = ` (ref: ${ref})`;
   if (error instanceof ApiError) {
     const msg = error.message ?? "";
     switch (error.status) {
       case 400:
-        if (/api key/i.test(msg)) return new AIError("not_configured", "The AI service is not configured correctly.");
-        return new AIError("bad_request", "The AI service couldn't process this request. Please try rephrasing or try again.");
+        if (/api key/i.test(msg)) return new AIError("not_configured", `The AI service is not configured correctly.${tag}`);
+        if (/location is not supported|FAILED_PRECONDITION/i.test(msg)) {
+          return new AIError("not_configured", `The AI service isn't available from this server's region.${tag}`);
+        }
+        return new AIError("bad_request", `The AI service couldn't process this request. Please try rephrasing or try again.${tag}`);
       case 401:
       case 403:
-        return new AIError("not_configured", "The AI service is not configured correctly.");
+        return new AIError("not_configured", `The AI service is not configured correctly.${tag}`);
       case 404:
-        return new AIError("not_configured", "The configured AI model isn't available. Please try again later.");
+        return new AIError("not_configured", `The configured AI model isn't available. Please try again later.${tag}`);
       case 408:
       case 504:
-        return new AIError("timeout", "The AI took too long to respond. Please try again.");
+        return new AIError("timeout", `The AI took too long to respond. Please try again.${tag}`);
       case 429:
         // Daily (free-tier) quota vs. a short per-minute burst limit.
         if (/per ?day|daily|PerDay|quota exceeded for metric.*day/i.test(msg)) {
           return new AIError("quota_exceeded", "Today's AI allowance has been used up. Please try again tomorrow.");
         }
         return new AIError("rate_limited", "The AI service is busy. Please try again in a minute.");
+      case 503:
+        return new AIError("unavailable", `The AI service is overloaded right now. Please try again in a minute.${tag}`);
       default:
-        if (error.status >= 500) return new AIError("unavailable", "The AI service is temporarily unavailable.");
-        return new AIError("unavailable", "The AI service is temporarily unavailable.");
+        return new AIError("unavailable", `The AI service is temporarily unavailable.${tag}`);
     }
   }
-  if (isAbort(error)) return new AIError("timeout", "The AI took too long to respond. Please try again.");
-  return new AIError("unavailable", "The AI service is temporarily unavailable.");
+  if (isAbort(error)) return new AIError("timeout", `The AI took too long to respond. Please try again.${tag}`);
+  return new AIError("unavailable", `The AI service is temporarily unavailable.${tag}`);
 }
 
 export class GeminiProvider implements AIProvider {

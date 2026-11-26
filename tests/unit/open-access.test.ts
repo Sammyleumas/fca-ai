@@ -53,7 +53,7 @@ describe("open access (no accounts)", () => {
     vi.stubGlobal("fetch", fetchSpy);
     const res = await proxy(req("/dashboard"));
     expect(res.headers.get("location")).toBe("https://fca-ai.example/study");
-    const health = await (await import("@/app/api/health/route")).GET();
+    const health = await (await import("@/app/api/health/route")).GET(new Request("https://fca-ai.example/api/health"));
     expect(await health.json()).toMatchObject({ status: "ok", accounts: false });
     expect(fetchSpy).not.toHaveBeenCalled();
   });
