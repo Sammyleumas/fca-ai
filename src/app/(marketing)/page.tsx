@@ -13,6 +13,8 @@ import {
 import { Logo } from "@/components/brand/logo";
 import { SilkBackground } from "@/components/brand/silk-background";
 import { ButtonLink } from "@/components/ui/button";
+import { LandingPage } from "@/components/landing/landing-page";
+import { accountsEnabled } from "@/lib/features";
 
 const STEPS = [
   { icon: UploadCloud, title: "Upload", text: "Bring PDFs, Word documents and notes — as many as you need." },
@@ -24,6 +26,8 @@ const STEPS = [
 ];
 
 export default function WelcomePage() {
+  // Accounts off (the default): a landing page that leads straight into the app.
+  if (!accountsEnabled()) return <LandingPage />;
   return (
     <div className="relative min-h-dvh overflow-hidden">
       <SilkBackground variant="hero" />

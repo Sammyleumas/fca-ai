@@ -1,5 +1,14 @@
 # Deploying FCA-AI (Vercel + Supabase)
 
+> **Default: open access, no accounts.** FCA-AI runs without sign-in and without
+> Supabase: the home page is a landing page and the study app (notes → AI tutor, quizzes,
+> flashcards) is at `/study`,
+> and work is saved only in the visitor's browser. The only required setting is
+> `GEMINI_API_KEY`. Sections 1, 3 and 4 below apply only if you turn accounts on with
+> `NEXT_PUBLIC_ACCOUNTS_ENABLED=true` (read at build time, so redeploy after changing it).
+> With accounts off, sign-in/sign-up and account pages redirect to `/study`, account-only
+> APIs answer `410`, and `/api/health` reports `{"accounts": false, "ai": …}`.
+
 ## 1. Supabase
 
 1. Create a project (Postgres 15+).
@@ -101,7 +110,7 @@ reminders to students who switched on "Also email me my reminders". Without thes
 
 See `docs/SECURITY.md` for the full security review.
 
-## "Try it" mode (no account, no database)
+## Study app without accounts (`/` when accounts are off, `/try` when on)
 
 `/try` lets anyone paste or upload notes and use the AI tutor, quizzes and flashcards
 without signing in. It needs only `GEMINI_API_KEY` — Supabase is not used at all, and

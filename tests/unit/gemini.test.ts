@@ -180,3 +180,43 @@ describe("Gemini helpers", () => {
     expect(stopReasonOf({ candidates: [{ finishReason: FinishReason.MAX_TOKENS }] } as never)).toBe("max_tokens");
   });
 });
+
+describe("Gemini failure diagnostics (so 'temporarily unavailable' has a findable cause)", () => {
+  it("adds a short reference to unexpected failures and logs a redacted detail on the server", () => {
+    const log = vi.spyOn(console, "error").mockImplementation(() => {});
+    const e = mapGeminiError(new ApiError({ status: 500, message: "Internal error for key AIzaSyFAKEFAKEFAKEFAKE123" }));
+    expect(e.message).toBe("The AI service is temporarily unavailable. (ref: gemini_500)");
+    expect(mapGeminiError(new ApiError({ status: 503, message: "The model is overloaded." })).message).toMatch(/overloaded.*ref: gemini_503/);
+    expect(mapGeminiError(Object.assign(new TypeError("fetch failed"), { cause: "ENOTFOUND generativelanguage.googleapis.com" })).message).toMatch(/ref: network/);
+    expect(mapGeminiError(new ApiError({ status: 400, message: "User location is not supported for the API use." })).message).toMatch(/region.*ref: gemini_400/);
+    const logged = log.mock.calls.map((c) => String(c[0])).join("\n");
+    expect(logged).toContain('"ref":"gemini_500"');
+    expect(logged).not.toContain("AIzaSyFAKE");
+    log.mockRestore();
+  });
+});
+
+describe("AI self-test (/api/health?ai=check)", () => {
+  it("reports success or the user-safe error, and calls Gemini at most once a minute", async () => {
+    const { aiSelfTest, resetAISelfTestForTests } = await import("@/lib/ai/self-test");
+    const ai = await import("@/lib/ai");
+    process.env.GEMINI_API_KEY = "test-key-not-real-123";
+    ai.resetAIProviderForTests();
+    resetAISelfTestForTests();
+    const provider = ai.getAIProvider() as unknown as { streamText: (o: unknown) => unknown };
+    let calls = 0;
+    provider.streamText = () => {
+      calls++;
+      return { textStream: (async function* () {})(), final: async () => { throw new AIError("unavailable", "The AI service is temporarily unavailable. (ref: gemini_500)"); } };
+    };
+    const first = await aiSelfTest(1_000_000);
+    expect(first).toMatchObject({ ok: false, error: "The AI service is temporarily unavailable. (ref: gemini_500)" });
+    expect(JSON.stringify(first)).not.toContain("test-key-not-real");
+    await aiSelfTest(1_030_000);
+    expect(calls).toBe(1);
+    provider.streamText = () => ({ textStream: (async function* () {})(), final: async () => ({ text: "OK", usage: {}, stopReason: "end_turn" }) });
+    expect((await aiSelfTest(1_070_000)).ok).toBe(true);
+    delete process.env.GEMINI_API_KEY;
+    ai.resetAIProviderForTests();
+  });
+});

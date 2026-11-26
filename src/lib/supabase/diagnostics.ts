@@ -16,6 +16,68 @@ export type SchemaDiagnostics = "ok" | "not_set_up" | "invalid_key" | "error" | 
 
 const TIMEOUT = 5000;
 
+export type ConfigSummary = {
+  /** Supabase project ID from the URL (public: it is in every browser request). */
+  project: string | null;
+  urlSource: "NEXT_PUBLIC_SUPABASE_URL" | "built-in default";
+  keySource: "NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY" | "NEXT_PUBLIC_SUPABASE_ANON_KEY" | "built-in default";
+  keyType: "publishable" | "legacy_anon" | "secret" | "service_role" | "unknown";
+  /** For legacy JWT keys only: the project the key belongs to, and whether it matches the URL. */
+  keyProject: string | null;
+  keyMatchesProject: boolean | null;
+};
+
+function projectRef(url: string): string | null {
+  const m = /^https:\/\/([a-z0-9]{20})\.supabase\.co$/i.exec(url);
+  return m ? m[1].toLowerCase() : null;
+}
+
+function jwtPayload(key: string): { ref?: string; role?: string } | null {
+  const part = key.split(".")[1];
+  if (!part) return null;
+  try {
+    return JSON.parse(Buffer.from(part, "base64url").toString("utf8")) as { ref?: string; role?: string };
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Which Supabase project the site talks to and where its settings come from — names
+ * and public IDs only, never key values. Catches a URL from one project paired with a
+ * key from another (e.g. a Vercel integration overriding hand-set variables).
+ */
+export function configSummary(): ConfigSummary | null {
+  const config = supabasePublicConfig();
+  if (!config) return null;
+  const has = (k: string) => Boolean(process.env[k]?.trim().replace(/^["']|["']$/g, "").trim());
+  const keySource = has("NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY")
+    ? "NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY"
+    : has("NEXT_PUBLIC_SUPABASE_ANON_KEY")
+      ? "NEXT_PUBLIC_SUPABASE_ANON_KEY"
+      : "built-in default";
+  const project = projectRef(config.url);
+  let keyType: ConfigSummary["keyType"] = "unknown";
+  let keyProject: string | null = null;
+  if (config.key.startsWith("sb_publishable_")) keyType = "publishable";
+  else if (config.key.startsWith("sb_secret_")) keyType = "secret";
+  else {
+    const payload = jwtPayload(config.key);
+    if (payload) {
+      keyType = payload.role === "service_role" ? "service_role" : payload.role === "anon" ? "legacy_anon" : "unknown";
+      keyProject = typeof payload.ref === "string" ? payload.ref : null;
+    }
+  }
+  return {
+    project,
+    urlSource: has("NEXT_PUBLIC_SUPABASE_URL") ? "NEXT_PUBLIC_SUPABASE_URL" : "built-in default",
+    keySource,
+    keyType,
+    keyProject,
+    keyMatchesProject: keyProject && project ? keyProject === project : null,
+  };
+}
+
 /**
  * Public, read-only checks using only the publishable key (no secrets): can the app
  * reach Supabase Auth, which sign-in methods are on, and do the app's tables exist?
