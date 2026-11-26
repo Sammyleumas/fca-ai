@@ -32,6 +32,8 @@ export class AIError extends Error {
   constructor(
     public readonly code: AIErrorCode,
     message: string,
+    /** Provider's own reason (keys redacted). For diagnostics only; never shown to students. */
+    public readonly detail?: string,
   ) {
     super(message);
     this.name = "AIError";

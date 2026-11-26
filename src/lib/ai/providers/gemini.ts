@@ -50,7 +50,10 @@ export function thinkingConfigFor(model: string, effort: Effort): ThinkingConfig
 
 /** Errors where another model may still answer: overloaded, over its own quota, or not found. */
 export function shouldTryNextModel(error: unknown): boolean {
-  return error instanceof ApiError && [404, 429, 500, 502, 503].includes(error.status);
+  if (!(error instanceof ApiError)) return false;
+  // A 400 can be specific to one model (an option it doesn't support), but not a bad key or region.
+  if (error.status === 400) return !/api key|location is not supported/i.test(error.message ?? "");
+  return [404, 429, 500, 502, 503].includes(error.status);
 }
 
 /** When every model failed, report the most useful cause: a missing backup model shouldn't hide "overloaded". */
@@ -141,6 +144,12 @@ export function mapGeminiError(error: unknown): AIError {
   if (error instanceof AIError) return error;
   const ref = geminiErrorRef(error);
   logGeminiFailure(error, ref);
+  const mapped = mapToAIError(error, ref);
+  const detail = redactSecrets(error instanceof Error ? error.message : String(error)).slice(0, 300);
+  return new AIError(mapped.code, mapped.message, detail);
+}
+
+function mapToAIError(error: unknown, ref: string): AIError {
   const tag = ` (ref: ${ref})`;
   if (error instanceof ApiError) {
     const msg = error.message ?? "";
@@ -196,7 +205,8 @@ export class GeminiProvider implements AIProvider {
           timeout: GEMINI_TIMEOUTS.stream,
           // Retry transient server errors only. 429 is surfaced immediately: a daily
           // free-tier quota won't recover by retrying, and the UI explains what to do.
-          retryOptions: { attempts: 2, initialDelay: 1, maxDelay: 4, httpStatusCodes: [500, 502, 503, 504] },
+          // 503 (overloaded) is not retried here: the provider switches to a backup model instead.
+          retryOptions: { attempts: 2, initialDelay: 1, maxDelay: 4, httpStatusCodes: [500, 502, 504] },
         },
       });
   }
@@ -210,6 +220,16 @@ export class GeminiProvider implements AIProvider {
       abortSignal: signal,
       httpOptions: { timeout },
     };
+  }
+
+  /** The models this provider tries, in order (main model first). */
+  get modelOrder(): string[] {
+    return [...this.models];
+  }
+
+  /** Same connection, one model and no backups (used by the health check to test each model). */
+  onlyModel(model: string): GeminiProvider {
+    return new GeminiProvider("", model, this.client, []);
   }
 
   /**
