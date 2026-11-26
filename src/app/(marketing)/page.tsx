@@ -13,6 +13,8 @@ import {
 import { Logo } from "@/components/brand/logo";
 import { SilkBackground } from "@/components/brand/silk-background";
 import { ButtonLink } from "@/components/ui/button";
+import { StudyPage } from "@/components/study/study-page";
+import { accountsEnabled } from "@/lib/features";
 
 const STEPS = [
   { icon: UploadCloud, title: "Upload", text: "Bring PDFs, Word documents and notes — as many as you need." },
@@ -24,6 +26,8 @@ const STEPS = [
 ];
 
 export default function WelcomePage() {
+  // Accounts off (the default): the home page is the study app itself.
+  if (!accountsEnabled()) return <StudyPage />;
   return (
     <div className="relative min-h-dvh overflow-hidden">
       <SilkBackground variant="hero" />

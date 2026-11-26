@@ -4,11 +4,19 @@ import { hasAdminClient, createAdminClient } from "@/lib/supabase/admin";
 import { billingProviders } from "@/lib/billing/config";
 import { emailConfigured } from "@/lib/email/send";
 import { authDiagnostics, configSummary, schemaDiagnostics } from "@/lib/supabase/diagnostics";
+import { accountsEnabled } from "@/lib/features";
 
 export const dynamic = "force-dynamic";
 
 /** Liveness + configuration check. Never returns secrets, only booleans. */
 export async function GET() {
+  if (!accountsEnabled()) {
+    // Open access: no accounts and no database; only the AI service matters.
+    return NextResponse.json(
+      { status: "ok", accounts: false, ai: isAIConfigured() },
+      { headers: { "Cache-Control": "no-store" } },
+    );
+  }
   let database: "ok" | "error" | "unconfigured" = "unconfigured";
   if (hasAdminClient()) {
     const { error } = await createAdminClient().from("achievements").select("id", { head: true, count: "exact" }).limit(1);
@@ -18,6 +26,7 @@ export async function GET() {
   const billing = billingProviders();
   const body = {
     status: database === "error" ? "degraded" : "ok",
+    accounts: true,
     database,
     /** Which Supabase project and settings are in use (public IDs and variable names only). */
     supabase: configSummary(),
